@@ -41,10 +41,10 @@ class XmlParser {
   };
 
   parseXml(xmlString: string): InstrumentData[] {
-    const rttRegex = /<(?:[a-z]*:)?(RTT)\b[^>]*>.*?<\/(?:[a-z]*:)?\1>/g;
+    const rttRegex = /<(?:[a-z]*:)?(RTT)\b[^>]*>.*?<\/(?:[a-z]*:)?\1>/gs;
 
     const valueRegex =
-      /<(?:[a-z]*:)?([A-Z]+)\b[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|([^<]*))<\/(?:[a-z]*:)?\1>/g;
+      /<(?:[a-z]*:)?([A-Z]+)\b[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|([^<]*))<\/(?:[a-z]*:)?\1>/gs;
 
     const result = [];
 
@@ -56,8 +56,26 @@ class XmlParser {
 
     const hasRTT = rttRegex.test(xmlString);
 
+    // For testing purposes
+    let lastMatch = ["", "", ""];
+    const allowedLastKeys = ["RT", "RST", "RAC", "WST", "OAN"];
+    //
+
     while ((match = valueRegex.exec(xmlString)) !== null) {
       const [, key, cdata, text] = match;
+
+      // For testing purposes
+      const [, lastKey, lastCdata, lastText] = lastMatch;
+
+      if (key === "RTT" && !allowedLastKeys.includes(lastKey)) {
+        console.log(lastKey, lastCdata, lastText);
+        throw new Error(
+          "Invalid XML structure: RTT tag must always follow RT tag."
+        );
+      }
+
+      lastMatch = match;
+      //
 
       if (this.columnsMap[key]) {
         const value = cdata || text;

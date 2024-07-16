@@ -34,7 +34,7 @@ app.use("/api/v1/", router);
 
 const server = app
   .listen(port, async () => {
-    console.log("Server running at port: ", port);
+    console.log("Server running at port:", port);
     main();
   })
   .on("error", (error) => {
