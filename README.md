@@ -20,6 +20,7 @@ The current version covers the following agencies:
 - [ ] Add more agencies
 - [ ] Direct parsing of XML files without ZIP extraction
 - [ ] Improve abort and cleanup logic
+- [ ] Optimizations for better resource management
 - [ ] Server restart functionality
 - [ ] General testing and debugging
 - [ ] Write good readme
