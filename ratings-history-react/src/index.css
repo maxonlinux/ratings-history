@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply fixed h-full w-full flex justify-center bg-gray-50;
+}
+
+#root {
+  @apply flex flex-col justify-between h-full w-full overflow-hidden max-w-[1536px] bg-white shadow-xl;
+}
+
+.ic {
+  font-family: "Material Symbols Rounded";
+  font-variation-settings: "FILL" 0, "GRAD" 0, "opsz" 24;
+}
+
+@keyframes load {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-load {
+  animation: load 1.5s linear infinite;
+}
