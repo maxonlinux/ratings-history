@@ -3,9 +3,11 @@ import { closeBrowser, downloadAndExtract, initializeBrowser } from "../utils";
 import fs from "fs/promises";
 import XmlParser from "../services/parser";
 import { emit } from ".";
+import { config } from "../config";
 
 const parser = new XmlParser();
-const credentials = ["tepapem371@bacaki.com", "5Df9t@r8X#vEHna"];
+
+const credentials = config.credentials["kroll-bond-ratings"];
 
 const loadPage = async (page: Page) => {
   const url = `https://www.kbra.com/`;
@@ -36,6 +38,10 @@ const goToLoginPage = async (page: Page) => {
 const enterCredentials = async (page: Page) => {
   const loginInputSelector = "#username";
   const passwordInputSelector = "#password";
+
+  if (!credentials[0] || !credentials[1]) {
+    throw new Error("No credentials for Kroll Bond!");
+  }
 
   await page.waitForSelector(loginInputSelector, {
     visible: true,

@@ -1,3 +1,5 @@
-const credentials = ["tepapem371@bacaki.com", "3bB*pfq@34Mw&eV"];
+import { config } from "../config";
+
+const credentials = config.credentials["ambest-ratings"];
 
 const getAmbestHistory = async () => {};

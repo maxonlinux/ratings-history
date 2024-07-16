@@ -9,9 +9,10 @@ import {
 import XmlParser from "../services/parser";
 import fs from "fs/promises";
 import { emit } from ".";
-const parser = new XmlParser();
+import { config } from "../config";
 
-const credentials = ["salane@citmo.net", "A4y66PE$augqYjJ"];
+const parser = new XmlParser();
+const credentials = config.credentials["morning-star"];
 
 const loadPage = async (page: Page) => {
   const url = `https://dbrs.morningstar.com/contact`;
@@ -54,7 +55,7 @@ const waitForCaptcha = async (page: Page) => {
       timeout: 5000,
     });
 
-    console.log('dsfdf')
+    console.log("dsfdf");
 
     throw new Error(
       "Captcha detected! Please use the manual upload method or retry in few hours"
@@ -93,6 +94,10 @@ const goToLoginPage = async (page: Page) => {
 const enterCredentials = async (page: Page) => {
   const loginInputSelector = "#usernameField";
   const passwordInputSelector = "#passwordField";
+
+  if (!credentials[0] || !credentials[1]) {
+    throw new Error("No credentials for Morning Star!");
+  }
 
   await page.waitForSelector(loginInputSelector, {
     visible: true,

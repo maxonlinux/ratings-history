@@ -3,9 +3,10 @@ import { closeBrowser, downloadAndExtract, initializeBrowser } from "../utils";
 import fs from "fs/promises";
 import XmlParser from "../services/parser";
 import { emit } from ".";
+import { config } from "../config";
 
 const parser = new XmlParser();
-const credentials = ["tepapem371@bacaki.com", "fdU-EF3!Lr8YRA$"];
+const credentials = config.credentials["moodys-ratings"];
 
 const loadLoginPage = async (page: Page) => {
   const loginPageUrl = "https://ratings.moodys.com/login";
@@ -20,6 +21,10 @@ const enterCredentials = async (page: Page) => {
   const loginInputSelector = "#idp-discovery-username";
   const nextButtonSelector = "#idp-discovery-submit";
   const passwordInputSelector = "#okta-signin-password";
+
+  if (!credentials[0] || !credentials[1]) {
+    throw new Error("No credentials for Moody's Ratings!");
+  }
 
   await page.waitForSelector(loginInputSelector, {
     visible: true,
