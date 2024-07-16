@@ -1,4 +1,4 @@
-# Ratings History
+# Rating History
 This project allows you to download credit rating data from various agencies (see the [Agencies List](#agencies-list) section) and convert it to the sorted CSV files.
 
 ## Agencies List
