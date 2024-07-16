@@ -36,11 +36,17 @@ function App() {
             <span className="font-thin">RatingsHistory</span>
           </h1>
           <div className="flex flex-col gap-4">
-            <button className="flex items-center gap-2 p-4 w-full border border-black rounded-lg">
-              <span className="ic">replay</span> Restart server
+            <button className="flex items-center gap-4 p-4 w-full border border-black/20 rounded-lg hover:bg-black/5">
+              <span className="flex items-center justify-center ic size-8 text-blue-700 rounded-full bg-blue-700/20">
+                sync
+              </span>
+              Restart server
             </button>
-            <button className="flex items-center gap-2 p-4 w-full border text-red-500 border-red-500 rounded-lg hover:border-red-500">
-              <span className="ic">chevron_left</span> Logout
+            <button className="flex items-center gap-4 p-4 w-full border border-black/20 rounded-lg hover:bg-black/5">
+              <span className="flex items-center justify-center ic size-8 text-red-700 rounded-full bg-red-700/20">
+                chevron_left
+              </span>
+              Logout
             </button>
           </div>
         </aside>
