@@ -15,8 +15,8 @@ The current version covers the following agencies:
 
 ## Todo
 - [x] Basic functionality
+- [x] Fix Moody's Ratings download
 - [ ] Authentication for admin panel + protect endpoints with auth middleware
-- [ ] Fix Moody's Ratings download
 - [ ] Add more agencies
 - [ ] Direct parsing of XML files without ZIP extraction
 - [ ] Improve abort and cleanup logic
