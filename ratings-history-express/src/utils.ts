@@ -113,9 +113,7 @@ const downloadAndExtract = async (
   const subDirName = performance.now().toString();
 
   try {
-    const response = await axios({
-      method: "GET",
-      url: url,
+    const response = await axios.get(url, {
       responseType: "stream",
       headers: {
         "User-Agent":

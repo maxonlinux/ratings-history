@@ -50,21 +50,26 @@ const FilesView = () => {
 
   return (
     <div className="relative p-4 w-1/2 overflow-y-auto">
-      {files.length ? (
+      <h1 className="flex items-center gap-2 text-3xl mb-8 mt-4">
+        <span className="font-thin">Files</span>
+      </h1>
+      {!isLoading && files.length ? (
         <div className="flex flex-col gap-4">
           {files.map((file: FileMetaData) => (
             <FileComponent key={file.name} file={file} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-4 items-center justify-center h-full w-full opacity-50">
-          <span className="ic text-7xl font-thin">folder</span>No files
-        </div>
+        !isLoading && (
+          <div className="flex flex-col gap-4 items-center justify-center h-full w-full opacity-50">
+            <span className="ic text-7xl font-thin">folder</span>No files
+          </div>
+        )
       )}
       {isLoading && (
-        <div className="absolute z-20 left-0 top-0 w-full h-full flex gap-4 items-center justify-center backdrop-blur-sm">
-          <div className="size-8 rounded-full border border-blue-700 border-r-transparent animate-spin" />
-          <div className="text-lg font-light">Getting files</div>
+        <div className="absolute z-20 left-0 top-0 w-full h-full flex gap-2 items-center justify-center text-3xl font-thin">
+          <span className="ic animate-spin">progress_activity</span>
+          Getting files...
         </div>
       )}
     </div>

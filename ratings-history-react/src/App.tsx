@@ -26,30 +26,31 @@ function App() {
 
   return (
     <>
-      <header className="flex gap-2 border-b border-black/15 pl-6 pr-4 py-4">
-        <h1 className="flex items-center gap-2 text-xl">
-          <span className="font-semibold">RatingsHistory</span>
-          <span className="font-thin opacity-70"> | </span>
-          <span className="font-thin opacity-70">Admin Panel</span>
-        </h1>
-        <button className="ml-auto flex items-center gap-2 text-amber-500 border border-amber-500 px-2 rounded-full">
-          Reboot server<span className="ic">replay</span>
-        </button>
-        <button className="flex items-center gap-2 text-red-600 border border-red-500 px-2 rounded-full">
-          Logout<span className="ic">logout</span>
-        </button>
-      </header>
-      <div className="px-4 py-4 border-b border-black/15">
+      <header className="flex items-center gap-4 px-4 py-4 border-b border-black/15">
         <p className="opacity-50">Space reserved for future updates</p>
-      </div>
+      </header>
       <div className="flex overflow-hidden h-full">
+        <aside className="border-r border-black/20 p-4 flex-shrink-0 w-72">
+          <h1 className="flex items-center gap-2 text-3xl mb-8 mt-4">
+            <span className="ic font-thin">admin_panel_settings</span>
+            <span className="font-thin">RatingsHistory</span>
+          </h1>
+          <div className="flex flex-col gap-4">
+            <button className="flex items-center gap-2 p-4 w-full border border-black rounded-lg">
+              <span className="ic">replay</span> Restart server
+            </button>
+            <button className="flex items-center gap-2 p-4 w-full border text-red-500 border-red-500 rounded-lg hover:border-red-500">
+              <span className="ic">chevron_left</span> Logout
+            </button>
+          </div>
+        </aside>
         <AgenciesView />
         <div className="w-px bg-black/15" />
         <FilesView />
       </div>
       <footer className="border-t border-black/15 p-4">
         <div className="opacity-50 text-center text-sm">
-          RatingsHistory.info Admin Panel
+          RatingsHistory Admin Panel
         </div>
       </footer>
     </>

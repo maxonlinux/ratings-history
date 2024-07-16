@@ -1,5 +1,10 @@
-import { Page } from "puppeteer";
-import { closeBrowser, downloadAndExtract, initializeBrowser } from "../utils";
+import { Browser, Page, Target } from "puppeteer";
+import {
+  closeBrowser,
+  downloadAndExtract,
+  flattenFolder,
+  initializeBrowser,
+} from "../utils";
 import fs from "fs/promises";
 import XmlParser from "../services/parser";
 import { emit } from ".";
@@ -83,21 +88,59 @@ const goToDownloadPage = async (page: Page) => {
   });
 };
 
-const getUrl = async (page: Page) => {
+const getDownloadUrlAndCookie = async (page: Page, browser: Browser) => {
   const selector =
     "body > app-root > main > app-sec-rule17g > app-intro-content > div.content.mt-6.mb-6 > div > div.text > p:nth-child(9) > a";
+
+  const newPagePromise = new Promise<Target>((resolve) =>
+    browser.once("targetcreated", resolve)
+  );
 
   await page.waitForSelector(selector, {
     timeout: 0,
     visible: true,
   });
 
-  const downloadUrl = await page.$eval(
-    selector,
-    (el) => (el as HTMLAnchorElement).href
-  );
+  await page.click(selector);
+  emit.message("Download button clicked");
 
-  return downloadUrl;
+  const newPageTarget = await newPagePromise;
+  const newPage = await newPageTarget.page();
+
+  if (!newPage) {
+    emit.error("Failed to open tab with download");
+    return;
+  }
+
+  emit.message("New tab with download page opened");
+
+  const downloadUrlAndCookiePromise = new Promise<string>((resolve) => {
+    const targetDownloadUrl = "https://www.moodys.com/uploadpage/Compliance/";
+
+    newPage.on("request", (request) => {
+      if (request.url().startsWith(targetDownloadUrl)) {
+        // Abort the request to prevent the browser from downloading the file
+        request.abort();
+        page.close();
+        resolve(
+          JSON.stringify({
+            downloadUrl: request.url(),
+            cookie: request.headers()["cookie"],
+          })
+        );
+      } else {
+        request.continue();
+      }
+    });
+  });
+
+  await newPage.setRequestInterception(true);
+
+  const resolved = await downloadUrlAndCookiePromise;
+
+  const { downloadUrl, cookie } = JSON.parse(resolved);
+
+  return { downloadUrl, cookie };
 };
 
 const getMoodysRatings = (abortController: AbortController) => {
@@ -142,21 +185,27 @@ const getMoodysRatings = (abortController: AbortController) => {
     await goToDownloadPage(page);
     emit.message("Download page loaded");
 
-    const downloadUrl = await getUrl(page);
+    const downloadUrlAndCookie = await getDownloadUrlAndCookie(page, browser);
 
-    if (!downloadUrl) {
-      emit.error("Failed to download or extract history files");
+    if (!downloadUrlAndCookie) {
+      emit.error("Failed to get download URL and/or cookie");
       return;
     }
 
+    const { downloadUrl, cookie } = downloadUrlAndCookie;
+
     emit.message("Success: " + downloadUrl);
+
+    // Close browser
+    await closeBrowser(browser);
+    emit.message("Browser closed");
 
     // Download files
     emit.message(
       "Downloading and extracting XML files (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract(downloadUrl);
+    dirPath = await downloadAndExtract(downloadUrl, { cookie });
 
     if (!dirPath) {
       emit.error("Failed to download or extract history files");
@@ -165,12 +214,10 @@ const getMoodysRatings = (abortController: AbortController) => {
 
     emit.message("Downloading and extraction completed!");
 
-    // Close browser
-    await closeBrowser(browser);
-    emit.message("Browser closed");
-
     // Process files
     emit.message("Parsing data and creating CSV files...");
+
+    await flattenFolder(dirPath);
     await parser.processXmlFiles(dirPath);
 
     emit.message(

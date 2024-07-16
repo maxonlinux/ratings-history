@@ -7,7 +7,9 @@ body {
 }
 
 #root {
-  @apply flex flex-col justify-between h-full w-full overflow-hidden max-w-[1536px] bg-white shadow-xl;
+  @apply flex flex-col justify-between h-full w-full overflow-hidden bg-white;
+
+  /* max-w-[1536px] shadow-xl */
 }
 
 .ic {

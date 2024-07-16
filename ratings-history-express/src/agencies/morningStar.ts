@@ -163,13 +163,6 @@ const getDownloadUrl = async (page: Page) => {
   const downloadButtonSelector =
     "#main-content > app-history-agree > div > section > div > div > div.grid-2of3 > div:nth-child(6) > button";
 
-  await page.waitForSelector(downloadButtonSelector, {
-    timeout: 0,
-    visible: true,
-  });
-
-  await page.click(downloadButtonSelector);
-
   await page.setRequestInterception(true);
 
   const downloadUrlPromise = new Promise<string>((resolve) => {
@@ -186,6 +179,13 @@ const getDownloadUrl = async (page: Page) => {
       }
     });
   });
+
+  await page.waitForSelector(downloadButtonSelector, {
+    timeout: 0,
+    visible: true,
+  });
+
+  await page.click(downloadButtonSelector);
 
   await page.waitForSelector(downloadButtonSelector, {
     visible: true,

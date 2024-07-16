@@ -164,7 +164,7 @@ const ManualUpload = () => {
 
   const Messages = () => {
     return (
-      <div className="w-full h-full flex flex-col gap-4 h-48 p-2 bg-white">
+      <div className="w-full h-full flex flex-col gap-4 h-48 p-2">
         <div
           className={`${lastMessageClassName} flex items-center gap-2 text-sm`}
         >
@@ -227,8 +227,8 @@ ${isDragActive ? "bg-blue-700/15 border-blue-700" : "border-black/30"}`}
             }  `}
           >
             <span className="ic text-7xl font-thin">folder_zip</span>
-            <p className="text-2xl font-semibold">Manual Upload</p>
-            <p className="text-xs">
+            <p className="text-3xl font-thin">Manual Upload</p>
+            <p className="text-xs my-2">
               {isDragActive
                 ? "Leave your file here"
                 : "Drag and drop ZIP archive here or click"}

@@ -28,6 +28,9 @@ const AgenciesView: React.FC = () => {
 
   return (
     <div className="p-4 w-1/2 overflow-y-auto">
+      <h1 className="flex items-center gap-2 text-3xl mb-8 mt-4">
+        <span className="font-thin">Agencies</span>
+      </h1>
       <div className="flex flex-col gap-4">
         {agenciesArray.map((agency) => (
           <AgencyComponent key={agency.name} agency={agency} />
