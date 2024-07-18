@@ -51,7 +51,7 @@ jobs:
         run: npm prune --production
 
       - name: Write environment variables to .env file
-        working-directory: ./ratings-history-express
+        working-directory: ./ratings-history-express/dist
         run: |
           touch .env
           echo "PORT=$PORT" >> .env
