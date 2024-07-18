@@ -23,14 +23,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
- 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./ratings-history-public
-
-      - name: Build backend
-        run: npm run build
-        working-directory: ./ratings-history-public
 
       - name: Clean up
         run: npm prune --production
