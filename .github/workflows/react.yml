@@ -4,6 +4,7 @@ on:
   push:
     paths: 
     - ratings-history-react/**
+    - .github/workflows/react.yml
     branches:
       - main
 
