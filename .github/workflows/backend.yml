@@ -2,6 +2,8 @@ name: Backend Deployment
 
 on:
   push:
+    paths: 
+    - ratings-history-express/**
     branches:
       - main  # Adjust to your main branch name
 
