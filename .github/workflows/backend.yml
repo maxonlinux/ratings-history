@@ -17,12 +17,17 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '22.4.1'  # Adjust to your Node.js version
-
+ 
       - name: Install dependencies
         run: npm install
+        working-directory: ./ratings-history-express  # Adjust if your package.json is in a subdirectory
+
+      - name: Build
+        run: npm run build
 
       - name: Build backend (if necessary)
         run: npm run build  # Adjust build command if needed
+        working-directory: ./ratings-history  # Adjust if your build script is in a subdirectoryÏ
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@master
@@ -31,7 +36,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
-            cd ${{ secrets.BACKEND_PATH }}
+            cd /home/sibers/ratings-history-express/
             git pull origin main  # Update codebase
             npm ci --only=production  # Install dependencies
             pm2 restart 0  # Restart your Node.js app (using pm2 or similar)
