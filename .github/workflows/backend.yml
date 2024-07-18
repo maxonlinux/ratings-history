@@ -15,20 +15,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
             
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
  
       - name: Install dependencies
         run: npm install
         working-directory: ./ratings-history-express  # Adjust if your package.json is in a subdirectory
-
-      - name: Build
-        run: npm run build
-        working-directory: ./ratings-history-express
 
       - name: Build backend
         run: npm run build  # Adjust build command if needed
