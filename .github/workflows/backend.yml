@@ -4,6 +4,7 @@ on:
   push:
     paths: 
     - ratings-history-express/**
+    - .github/workflows/backend.yml
     branches:
       - main  # Adjust to your main branch name
 
