@@ -16,7 +16,7 @@ jobs:
         node-version: [22.x]
 
     env:
-      VITE_BASE_URL: ${{ envs.API_BASE_URL }}
+      VITE_BASE_URL: ${{ vars.API_BASE_URL }}
 
     steps:
       - name: Checkout code
