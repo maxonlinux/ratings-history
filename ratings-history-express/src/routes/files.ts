@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import fs from "fs/promises";
 import path from "path";
 import { FileMetaData } from "../types";
-import { extractMetadataFromFile } from "../utils";
+import { extractMetadataFromFile } from "../utils/general";
 import { config } from "../config";
 
 const router = Router();

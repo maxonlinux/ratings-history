@@ -1,8 +1,9 @@
 import axios from "axios";
-import { agenciesMap, baseUrl } from "../App";
+import { agenciesMap } from "../App";
 import { Events, Message } from "../types";
 import { useEffect } from "react";
 import { emitter } from "../services/emitter";
+import { config } from "../config";
 
 const AgencyComponent: React.FC<{
   agency: { name: string; messages: Message[] };
@@ -57,7 +58,7 @@ const AgencyComponent: React.FC<{
         <button
           className="ic ml-auto size-10 bg-red-700/15 text-red-700 flex-shrink-0 rounded-full"
           onClick={() => {
-            axios.post(baseUrl + "/api/v1/agencies/abort/" + agency.name);
+            axios.post(config.apiUrl + "/agencies/abort/" + agency.name);
           }}
         >
           close
@@ -70,7 +71,7 @@ const AgencyComponent: React.FC<{
               : "bg-blue-700/15 text-blue-700"
           } flex-shrink-0 rounded-full`}
           onClick={() => {
-            axios.post(baseUrl + "/api/v1/agencies/download/" + agency.name);
+            axios.post(config.apiUrl + "/agencies/download/" + agency.name);
           }}
         >
           {isFailed ? "replay" : "download"}

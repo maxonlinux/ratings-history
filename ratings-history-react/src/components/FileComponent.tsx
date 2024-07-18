@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { baseUrl } from "../App";
 import axios from "axios";
 import { emitter } from "../services/emitter";
 import { Events } from "../types";
+import { config } from "../config";
 
 const FileComponent: React.FC<{
   file: { name: string; date: string; size: number; lines: number };
@@ -47,7 +47,7 @@ const FileComponent: React.FC<{
     }
 
     try {
-      const res = await axios.delete(baseUrl + "/api/v1/files/" + file.name);
+      const res = await axios.delete(config.apiUrl + "/files/" + file.name);
       emitter.dispatch(Events.FILE_DELETE, file.name);
       console.log(res.data);
     } catch (error) {
@@ -65,7 +65,7 @@ const FileComponent: React.FC<{
 
     if (editedName !== file.name) {
       try {
-        const res = await axios.put(baseUrl + "/api/v1/files/" + file.name, {
+        const res = await axios.put(config.apiUrl + "/files/" + file.name, {
           newName: editedName,
         });
         emitter.dispatch(Events.FILE_EDIT, {
@@ -107,8 +107,8 @@ const FileComponent: React.FC<{
           />
         ) : (
           <a
-            className="relative z-10 hover:text-blue-700 border-b border-transparent"
-            href={baseUrl + "/public/" + file.name}
+            className="hover:text-blue-700 border-b border-transparent"
+            href={config.baseUrl + "/public/" + file.name}
           >
             {file.name}
           </a>
@@ -157,7 +157,7 @@ const FileComponent: React.FC<{
       <div
         className={`absolute left-0 top-0 w-full h-full transition-all ${
           isDeleting || isEditing
-            ? `backdrop-blur-sm ${isDeleting ? "bg-red-700/10" : ""} ${
+            ? `${isDeleting ? "bg-red-700/10" : ""} ${
                 isEditing ? "bg-gray-700/10" : ""
               }`
             : "backdrop-blur-0 pointer-events-none"

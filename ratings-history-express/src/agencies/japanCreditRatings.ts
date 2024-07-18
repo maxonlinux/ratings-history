@@ -1,15 +1,10 @@
 import { Page } from "puppeteer";
-import XmlParser from "../services/parser";
-import {
-  closeBrowser,
-  downloadAndExtract,
-  flattenFolder,
-  initializeBrowser,
-} from "../utils";
+import Parser from "../services/parser";
 import fs from "fs/promises";
 import { emit } from ".";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 
 const loadPage = async (page: Page) => {
   const url = `https://www.jcr.co.jp/en/service/company/regu/nrsro/`;
@@ -38,7 +33,7 @@ const getUrl = async (page: Page) => {
 };
 
 const getJapanCreditRatingsHistory = (abortController: AbortController) => {
-  let dirPath: string;
+  let zipFilePath: string;
 
   return new Promise(async (resolve, reject) => {
     abortController.signal.addEventListener(
@@ -46,8 +41,8 @@ const getJapanCreditRatingsHistory = (abortController: AbortController) => {
       async () => {
         emit.message("Aborting...");
 
-        if (dirPath) {
-          await fs.rm(dirPath, { recursive: true, force: true });
+        if (zipFilePath) {
+          await fs.rm(zipFilePath);
         }
 
         reject("Operation aborted");
@@ -57,7 +52,7 @@ const getJapanCreditRatingsHistory = (abortController: AbortController) => {
 
     emit.message("Getting JCR history files...");
 
-    const { browser, page } = await initializeBrowser();
+    const { browser, page } = await downloader.initializeBrowser();
 
     emit.message("Headless browser initialized");
 
@@ -70,7 +65,7 @@ const getJapanCreditRatingsHistory = (abortController: AbortController) => {
 
     emit.message("Success: " + downloadUrl);
 
-    await closeBrowser(browser);
+    await downloader.closeBrowser(browser);
 
     emit.message("Browser closed");
 
@@ -80,29 +75,26 @@ const getJapanCreditRatingsHistory = (abortController: AbortController) => {
     }
 
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP with XML files (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract(downloadUrl);
+    zipFilePath = await downloader.downloadZip(downloadUrl);
 
-    if (!dirPath) {
-      emit.error("Failed to download or extract history files");
+    if (!zipFilePath) {
+      emit.error("Failed to download ZIP");
       return;
     }
 
-    emit.message("Downloading and extraction completed!");
+    emit.message("Downloading completed!");
     emit.message("Parsing data and creating CSV files...");
 
-    await flattenFolder(dirPath);
-    await parser.processXmlFiles(dirPath);
+    await parser.processZipArchive(zipFilePath);
 
-    emit.message(
-      "JCR history files successfully processed. Deleting folder with XML files..."
-    );
+    emit.message("JCR history files successfully processed. Deleting ZIP...");
 
-    await fs.rm(dirPath, { recursive: true, force: true });
+    await fs.rm(zipFilePath);
 
-    emit.message("JCR XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });

@@ -1,0 +1,11 @@
+{
+  "name": "ratings-history-index",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Maksym Motoman",
+  "license": "ISC",
+  "description": ""
+}

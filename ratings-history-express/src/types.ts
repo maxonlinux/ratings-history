@@ -72,14 +72,17 @@ export enum Agencies {
 export interface Message {
   type: string;
   message: string;
+  [key: string]: string;
+}
+export enum Events {
+  AGENCY_MESSAGE = "AGENCY_MESSAGE",
+  AGENCIES_UPDATE = "AGENCIES_UPDATE",
+  UPLOAD_MESSAGE = "UPLOAD_MESSAGE",
+  UPLOAD_UPDATE = "UPLOAD_UPDATE",
+  SYSTEM_INFO = "SYSTEM_INFO",
 }
 
-export enum AgencyEvent {
-  MESSAGE = "AGENCY_MESSAGES_UPDATE",
-  UPDATE = "AGENCIES_UPDATE",
-}
-
-export enum UploadEvent {
-  MESSAGE = "UPLOAD_MESSAGES_UPDATE",
-  UPDATE = "UPLOAD_UPDATE",
+export enum TaskerEvents {
+  AGENCY_TASK = "agency",
+  UPLOAD_TASK = "file",
 }

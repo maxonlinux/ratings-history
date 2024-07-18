@@ -7,16 +7,19 @@ const router = Router();
 
 router.post(
   "/upload",
-  upload.single("file"),
+  upload.array("files"),
   async (req: Request, res: Response) => {
-    if (!req.file) {
+    const filesArray = req.files as Express.Multer.File[];
+
+    if (!filesArray.length) {
       return res.status(400).send("No file uploaded");
     }
 
-    const filePath = path.resolve(req.file.path);
-
     try {
-      await uploader.initiate(filePath);
+      for (const file of filesArray) {
+        const filePath = path.resolve(file.path);
+        await uploader.initiate(filePath);
+      }
 
       res.status(200).json({ message: "Initiated upload and processing" });
     } catch (error) {

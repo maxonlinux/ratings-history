@@ -2,7 +2,11 @@ import { agenciesFunctionsMap } from "../agencies";
 import { emitter } from ".";
 import { fork } from "child_process";
 import path from "path";
-import { AgencyEvent, Message } from "../types";
+import { createWriteStream } from "fs";
+import { CustomHeaders, Events, Message } from "../types";
+import puppeteer, { Browser } from "puppeteer";
+import { config } from "../config";
+import axios from "axios";
 
 class Downloader {
   private processes: Map<string, any>;
@@ -14,6 +18,71 @@ class Downloader {
 
     for (const key in agenciesFunctionsMap) {
       this.agencies.set(key, { messages: [] });
+    }
+  }
+
+  public async initializeBrowser() {
+    const browser = await puppeteer.launch({
+      headless: true,
+      defaultViewport: {
+        width: 1280 + Math.floor(Math.random() * 100),
+        height: 800 + Math.floor(Math.random() * 100),
+        deviceScaleFactor: 1,
+      },
+      args: [
+        "--disable-web-security",
+        "--disable-features=IsolateOrigins,site-per-process",
+      ],
+    });
+
+    const [page] = await browser.pages();
+
+    //Randomize viewport size
+    await page.setViewport({
+      width: 1280 + Math.floor(Math.random() * 100),
+      height: 800 + Math.floor(Math.random() * 100),
+      deviceScaleFactor: 1,
+    });
+
+    return { page, browser };
+  }
+
+  public async closeBrowser(browser: Browser) {
+    await browser.close();
+  }
+
+  public async downloadZip(url: string, customHeaders?: CustomHeaders) {
+    const zipFileName = performance.now().toString() + ".zip";
+    const zipFilePath = path.resolve(config.tempDirPath, zipFileName);
+
+    try {
+      const response = await axios.get(url, {
+        responseType: "stream",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          ...customHeaders,
+        },
+      });
+
+      // const contentType = response.headers["content-type"];
+
+      // if (contentType !== "application/zip") {
+      //   throw new Error("Downloaded file is not ZIP");
+      // }
+
+      const ws = createWriteStream(zipFilePath);
+      const stream = response.data.pipe(ws);
+
+      await new Promise((resolve, reject) => {
+        stream.on("finish", resolve);
+        stream.on("error", reject);
+      });
+
+      return zipFilePath;
+    } catch (error) {
+      const err = String(error);
+      throw new Error(err);
     }
   }
 
@@ -41,34 +110,38 @@ class Downloader {
     child.send({ event: "agency", data: agencyName });
 
     child.on("message", (msg: any) => {
-      console.log(msg);
-      const { event, message } = msg;
-      if (event === AgencyEvent.MESSAGE) {
-        emitter.emit(AgencyEvent.UPDATE, agencyName, message);
+      const { event, data } = msg;
+
+      if (event !== Events.AGENCY_MESSAGE) {
+        return;
       }
+
+      emitter.emit(Events.AGENCIES_UPDATE, data);
     });
 
     child.on("complete", () => {
-      emitter.emit(AgencyEvent.UPDATE, agencyName, {
+      emitter.emit(Events.AGENCIES_UPDATE, {
         type: "exit",
         message: "Done!",
+        agencyName,
       });
     });
 
     child.on("error", (err: any) => {
       console.error(err);
 
-      emitter.emit(AgencyEvent.UPDATE, agencyName, {
+      emitter.emit(Events.AGENCIES_UPDATE, {
         type: "error",
         message: err.message ?? err,
+        agencyName,
       });
     });
 
-    child.on("exit", (code, signal) => {
+    child.on("exit", async (code, signal) => {
       this.cleanup(agencyName);
 
       console.log(
-        `Child process exited with code ${code} and signal ${signal}`
+        `Child process for ${agencyName} exited with code ${code} and signal ${signal}`
       );
     });
   }
@@ -99,14 +172,14 @@ class Downloader {
     process.send({ event: "abort" });
   }
 
-  public appendStatus(agencyName: string, message: Message) {
+  public appendStatus(agencyName: string, data: Message) {
     const agency = this.agencies.get(agencyName);
 
     if (!agency) {
       throw new Error("No agency with name " + agencyName);
     }
 
-    this.agencies.set(agencyName, { messages: [message, ...agency.messages] });
+    this.agencies.set(agencyName, { messages: [data, ...agency.messages] });
   }
 
   public getAgency(agencyName?: string) {

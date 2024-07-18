@@ -1,7 +1,7 @@
 import WebSocket, { WebSocketServer } from "ws";
 import { Server } from "http";
-import { downloader, uploader } from ".";
-import { AgencyEvent, UploadEvent } from "../types";
+import { downloader, monitor, uploader } from ".";
+import { Events } from "../types";
 
 class Socket {
   private wss: WebSocketServer;
@@ -25,23 +25,33 @@ class Socket {
           const subscriptions = this.clients.get(ws);
           subscriptions?.add(data);
 
-          if (data === AgencyEvent.UPDATE) {
-            console.log(`Client subscribed to ${AgencyEvent.UPDATE}`);
+          if (data === Events.AGENCIES_UPDATE) {
+            console.log(`Client subscribed to ${Events.AGENCIES_UPDATE}`);
             const agencies = downloader.getAgencies();
 
             this.broadcast({
-              event: AgencyEvent.UPDATE,
+              event: Events.AGENCIES_UPDATE,
               data: agencies,
             });
           }
 
-          if (data === UploadEvent.UPDATE) {
-            console.log(`Client subscribed to ${UploadEvent.UPDATE}`);
+          if (data === Events.UPLOAD_UPDATE) {
+            console.log(`Client subscribed to ${Events.UPLOAD_UPDATE}`);
             const messages = uploader.getMessages();
 
             this.broadcast({
-              event: UploadEvent.UPDATE,
+              event: Events.UPLOAD_UPDATE,
               data: messages,
+            });
+          }
+
+          if (data === Events.AGENCIES_UPDATE) {
+            console.log(`Client subscribed to ${Events.SYSTEM_INFO}`);
+            const data = monitor.getSysInfo();
+
+            this.broadcast({
+              event: Events.SYSTEM_INFO,
+              data,
             });
           }
         }

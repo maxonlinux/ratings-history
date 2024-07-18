@@ -1,11 +1,11 @@
 import { Browser, Page, Target } from "puppeteer";
-import { closeBrowser, downloadAndExtract, initializeBrowser } from "../utils";
 import fs from "fs/promises";
-import XmlParser from "../services/parser";
+import Parser from "../services/parser";
 import { emit } from ".";
 import { config } from "../config";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 
 const credentials = config.credentials["kroll-bond-ratings"];
 
@@ -84,7 +84,7 @@ const getDownloadUrl = async (
     "https://www.kbra.com/regulatory/disclosures/form-nrsro";
 
   const downloadButtonSelector =
-    "body > div.min-h-screen > div > main > div > div > div > div > div > div > div.m-2 > form > button";
+    "body > div.min-h-screen > div > div > main > div > div > div > div > div > div > div.m-2 > form > button";
 
   const targetDownloadUrl = "https://dotcom-api.kbra.com";
 
@@ -143,6 +143,25 @@ const getDownloadUrl = async (
   return downloadUrl;
 };
 
+const acceptCookies = async (page: Page) => {
+  const acceptButtonSelector = "#onetrust-accept-btn-handler";
+
+  try {
+    await page.waitForSelector(acceptButtonSelector, {
+      visible: true,
+    });
+
+    await page.click(acceptButtonSelector);
+
+    emit.message("Cookies accepted");
+  } catch (error) {
+    // const err = error as any;
+    // if (err.name !== "TimeoutError") {
+    //   throw new Error(err.message ?? err);
+    // }
+  }
+};
+
 const getKrollBondRatingsHistory = (abortController: AbortController) => {
   return new Promise(async (resolve, reject) => {
     const downloadedFilesPaths: string[] = [];
@@ -156,10 +175,7 @@ const getKrollBondRatingsHistory = (abortController: AbortController) => {
           await browser.close();
 
           for (const path of downloadedFilesPaths) {
-            await fs.rm(path, {
-              recursive: true,
-              force: true,
-            });
+            await fs.rm(path);
           }
 
           reject("Operation aborted");
@@ -178,11 +194,12 @@ const getKrollBondRatingsHistory = (abortController: AbortController) => {
     const issuerLevelRatingsPageLinkSelector =
       "body > div.min-h-screen > div > div > main > div > div > div.flex.basis-full.flex-col.overflow-x-hidden > div > div > ul:nth-child(7) > li:nth-child(2) > p > a";
 
-    const { page, browser } = await initializeBrowser();
+    const { page, browser } = await downloader.initializeBrowser();
     emit.message("Headless browser initialized");
 
     // Login
     await loadPage(page);
+    acceptCookies(page);
     emit.message("Page loaded");
     await goToLoginPage(page);
     emit.message("Redirected to login page");
@@ -221,39 +238,36 @@ const getKrollBondRatingsHistory = (abortController: AbortController) => {
 
     emit.message(`Found ${downloadUrls.length} URLs`);
 
+    // Close browser
+    await downloader.closeBrowser(browser);
+    emit.message("Browser closed");
+
     // Download files
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP (It could take a while, please be patient...)"
     );
 
     for (const url of downloadUrls) {
-      const filePath = await downloadAndExtract(url);
-      downloadedFilesPaths.push(filePath);
+      const zipFilePath = await downloader.downloadZip(url);
+      downloadedFilesPaths.push(zipFilePath);
     }
 
     emit.message("Downloading and extraction completed!");
-
-    // Close browser
-    await closeBrowser(browser);
-    emit.message("Browser closed");
 
     // Process files
     emit.message("Parsing data and creating CSV files...");
 
     for (const path of downloadedFilesPaths) {
-      await parser.processXmlFiles(path);
+      await parser.processZipArchive(path);
     }
 
-    emit.message(
-      "KBRA history files successfully processed. Deleting folder with XML files..."
-    );
+    emit.message("KBRA history files successfully processed. Deleting ZIP...");
 
-    // Remove XML files from temp dir
     for (const path of downloadedFilesPaths) {
-      await fs.rm(path, { recursive: true, force: true });
+      await fs.rm(path);
     }
 
-    emit.message("KBRA XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });

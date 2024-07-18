@@ -1,5 +1,5 @@
 import { emitter } from "../services";
-import { AgenciesMap, AgencyEvent } from "../types";
+import { AgenciesMap, Events } from "../types";
 import { getDemotechRatingsHistory } from "./demotechRatings";
 import { getEganJonesHistory } from "./eganJones";
 import { getFitchRatingsHistory } from "./fitchRatings";
@@ -20,13 +20,13 @@ const agenciesFunctionsMap: AgenciesMap = {
 
 const emit = {
   message: (message: string) => {
-    emitter.emit(AgencyEvent.MESSAGE, {
+    emitter.emit(Events.AGENCY_MESSAGE, {
       message,
       type: "message",
     });
   },
   error: (message: string) => {
-    emitter.emit(AgencyEvent.MESSAGE, {
+    emitter.emit(Events.AGENCY_MESSAGE, {
       message,
       type: "error",
     });

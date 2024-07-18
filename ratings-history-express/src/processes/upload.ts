@@ -1,12 +1,10 @@
-import { extractFromFile, flattenFolder } from "../utils";
 import fs from "fs/promises";
-import XmlParser from "../services/parser";
+import Parser from "../services/parser";
+import { Message, Events } from "../types";
 import { emitter } from "../services";
-import { Message, UploadEvent } from "../types";
-import path from "path";
 
 const controller = new AbortController();
-const parser = new XmlParser();
+const parser = new Parser();
 
 const send = (message: any) => {
   if (process.send) {
@@ -14,27 +12,10 @@ const send = (message: any) => {
   }
 };
 
-async function checkDirectoryForXmlFiles(directoryPath: string) {
-  try {
-    const files = await fs.readdir(directoryPath);
-    const xmlFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".xml"
-    );
-
-    if (!xmlFiles.length) {
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error("Error checking directory for XML files:", err);
-  }
-}
-
 const start = async (filePath: string) => {
-  emitter.on(UploadEvent.MESSAGE, (message: Message) => {
+  emitter.on(Events.UPLOAD_MESSAGE, (data: Message) => {
     try {
-      send({ event: UploadEvent.MESSAGE, message });
+      send({ event: Events.UPLOAD_MESSAGE, data });
     } catch (error) {
       console.error(error);
     }
@@ -54,32 +35,23 @@ const start = async (filePath: string) => {
     { once: true }
   );
 
-  emitter.emit(UploadEvent.MESSAGE, {
+  emitter.emit(Events.UPLOAD_MESSAGE, {
     message: "Process initiated",
     type: "message",
   });
 
-  dirPath = await extractFromFile(filePath);
-  await flattenFolder(dirPath);
+  await parser.processZipArchive(filePath);
 
-  const hasXmlFiles = await checkDirectoryForXmlFiles(dirPath);
-
-  if (!hasXmlFiles) {
-    throw new Error("This archive doesn't contain XML files");
-  }
-
-  await parser.processXmlFiles(dirPath);
-
-  emitter.emit(UploadEvent.MESSAGE, {
+  emitter.emit(Events.UPLOAD_MESSAGE, {
     message: "Done!",
     type: "exit",
   });
 
-  process.exit(0)
+  process.exit(0);
 };
 
 const abort = () => {
-  emitter.emit(UploadEvent.MESSAGE, {
+  emitter.emit(Events.UPLOAD_MESSAGE, {
     message: "Aborted by user",
     type: "exit",
   });
@@ -88,7 +60,7 @@ const abort = () => {
 };
 
 process.on("uncaughtException", (err) => {
-  emitter.emit(UploadEvent.MESSAGE, {
+  emitter.emit(Events.UPLOAD_MESSAGE, {
     message: err.message ?? err,
     type: "error",
   });

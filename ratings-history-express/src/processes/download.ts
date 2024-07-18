@@ -1,19 +1,22 @@
 import { agenciesFunctionsMap } from "../agencies";
-import { AgencyEvent, Message } from "../types";
 import { emitter } from "../services";
+import { Events, Message } from "../types";
 
 const controller = new AbortController(); // Doesn't work so far, so simple process.exit() is used. Will be implemented soon.
 
-const send = (message: any) => {
+const send = (message: { event: string; data: Message }) => {
   if (process.send) {
     process.send(message);
   }
 };
 
 const start = async (agencyName: string) => {
-  emitter.on(AgencyEvent.MESSAGE, (message: Message) => {
+  emitter.on(Events.AGENCY_MESSAGE, (data: Message) => {
     try {
-      send({ event: AgencyEvent.MESSAGE, agencyName, message });
+      send({
+        event: Events.AGENCY_MESSAGE,
+        data: { ...data, agencyName },
+      });
     } catch (error) {
       console.error(error);
     }
@@ -22,7 +25,7 @@ const start = async (agencyName: string) => {
   const agencyFunction = agenciesFunctionsMap[agencyName];
   await agencyFunction(controller, emitter);
 
-  emitter.emit(AgencyEvent.MESSAGE, {
+  emitter.emit(Events.AGENCY_MESSAGE, {
     message: "Done!",
     type: "exit",
   });
@@ -32,7 +35,7 @@ const start = async (agencyName: string) => {
 
 const abort = () => {
   // controller.abort()
-  emitter.emit(AgencyEvent.MESSAGE, {
+  emitter.emit(Events.AGENCY_MESSAGE, {
     message: "Aborted by user",
     type: "exit",
   });
@@ -41,7 +44,7 @@ const abort = () => {
 };
 
 process.on("uncaughtException", (err) => {
-  emitter.emit(AgencyEvent.MESSAGE, {
+  emitter.emit(Events.AGENCY_MESSAGE, {
     message: err.message ?? err,
     type: "error",
   });

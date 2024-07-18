@@ -1,17 +1,11 @@
 import { Page } from "puppeteer";
-import {
-  closeBrowser,
-  downloadAndExtract,
-  flattenFolder,
-  initializeBrowser,
-  sleep,
-} from "../utils";
-import XmlParser from "../services/parser";
+import Parser from "../services/parser";
 import fs from "fs/promises";
 import { emit } from ".";
 import { config } from "../config";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 const credentials = config.credentials["morning-star"];
 
 const loadPage = async (page: Page) => {
@@ -31,7 +25,6 @@ const agreeWithPrivacyNotice = async (page: Page) => {
 
   try {
     await page.waitForSelector(okButtonSelector, {
-      timeout: 5000,
       visible: true,
     });
 
@@ -39,32 +32,28 @@ const agreeWithPrivacyNotice = async (page: Page) => {
 
     emit.message("Agreed with Privacy Notice");
   } catch (error) {
-    const err = error as any;
-    if (err.name === "TimeoutError") {
-      emit.message("Privacy Notice did not appear. Skipping...");
-    }
+    // const err = error as any;
+    // if (err.name === "TimeoutError") {
+    // }
   }
 };
 
 const waitForCaptcha = async (page: Page) => {
-  const captchaSelector = "#ngrecaptcha-0 > div > div > iframe";
+  const captchaSelector = "#ngrecaptcha-0";
 
   try {
     await page.waitForSelector(captchaSelector, {
       visible: true,
-      timeout: 5000,
     });
-
-    console.log("dsfdf");
 
     throw new Error(
       "Captcha detected! Please use the manual upload method or retry in few hours"
     );
   } catch (error) {
-    const err = error as any;
-    if (err.name !== "TimeoutError") {
-      throw new Error(err.message ?? err);
-    }
+    // const err = error as any;
+    // if (err.name !== "TimeoutError") {
+    //   throw new Error(err.message ?? err);
+    // }
   }
 };
 
@@ -80,8 +69,6 @@ const goToLoginPage = async (page: Page) => {
   await page.click(loginButtonSelector);
 
   emit.message("Login button clicked");
-
-  await waitForCaptcha(page);
 
   await page.waitForNavigation({
     waitUntil: "networkidle2",
@@ -202,7 +189,7 @@ const getDownloadUrl = async (page: Page) => {
 };
 
 const getMorningStarHistory = (abortController: AbortController) => {
-  let dirPath: string;
+  let zipFilePath: string;
 
   return new Promise(async (resolve, reject) => {
     abortController.signal.addEventListener(
@@ -212,8 +199,8 @@ const getMorningStarHistory = (abortController: AbortController) => {
 
         await browser.close();
 
-        if (dirPath) {
-          await fs.rm(dirPath, { recursive: true, force: true });
+        if (zipFilePath) {
+          await fs.rm(zipFilePath);
         }
 
         reject("Operation aborted");
@@ -223,10 +210,11 @@ const getMorningStarHistory = (abortController: AbortController) => {
 
     emit.message("Getting Morning Star history files...");
 
-    const { browser, page } = await initializeBrowser();
+    const { browser, page } = await downloader.initializeBrowser();
     emit.message("Headless browser initialized");
 
     await loadPage(page);
+    waitForCaptcha(page);
     await agreeWithPrivacyNotice(page);
     await goToLoginPage(page);
     await enterCredentials(page);
@@ -241,38 +229,34 @@ const getMorningStarHistory = (abortController: AbortController) => {
       return;
     }
 
+    // Close browser
+    await downloader.closeBrowser(browser);
+    emit.message("Browser closed");
+
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract(downloadUrl);
+    zipFilePath = await downloader.downloadZip(downloadUrl);
 
-    if (!dirPath) {
-      emit.error("Failed to download or extract history files");
+    if (!zipFilePath) {
+      emit.error("Failed to download ZIP");
       return;
     }
 
     emit.message("Downloading completed!");
 
-    // Close browser
-    await closeBrowser(browser);
-    emit.message("Browser closed");
-
-    // Flatten folder
-    await flattenFolder(dirPath);
-
     // Process files
     emit.message("Parsing data and creating CSV files...");
-    await parser.processXmlFiles(dirPath);
+    await parser.processZipArchive(zipFilePath);
 
     emit.message(
-      "Morning Star history files successfully processed. Deleting folder with XML files..."
+      "Morning Star history files successfully processed. Deleting ZIP..."
     );
 
-    // Remove XML files from temp dir
-    await fs.rm(dirPath, { recursive: true, force: true });
+    await fs.rm(zipFilePath);
 
-    emit.message("Morning Star XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });

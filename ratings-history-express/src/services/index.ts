@@ -2,20 +2,27 @@ import Socket from "./socket";
 import Downloader from "./downloader";
 import Uploader from "./uploader";
 import EventEmitter from "events";
-import { AgencyEvent, UploadEvent } from "../types";
+import { Events, Message } from "../types";
+import Takser from "./tasker";
+import Monitor from "./monitor";
 
+const emitter = new EventEmitter();
 const downloader = new Downloader();
 const uploader = new Uploader();
 const socket = new Socket("/ws");
-const emitter = new EventEmitter();
+const tasker = new Takser(2);
+const monitor = new Monitor();
 
-emitter.on(AgencyEvent.UPDATE, (agencyName, message) => {
+emitter.on(Events.AGENCIES_UPDATE, (data: Message) => {
+  console.log("Update from uploader: ", data);
+  const { message, type, agencyName } = data;
+
   try {
-    downloader.appendStatus(agencyName, message);
+    downloader.appendStatus(agencyName, { message, type });
     const agencies = downloader.getAgencies();
 
     socket.broadcast({
-      event: AgencyEvent.UPDATE,
+      event: Events.AGENCIES_UPDATE,
       data: agencies,
     });
   } catch (error) {
@@ -23,13 +30,14 @@ emitter.on(AgencyEvent.UPDATE, (agencyName, message) => {
   }
 });
 
-emitter.on(UploadEvent.UPDATE, (message) => {
+emitter.on(Events.UPLOAD_UPDATE, (data: Message) => {
+  console.log("Update from uploader: ", data);
   try {
-    uploader.appendMessage(message);
+    uploader.appendMessage(data);
     const messages = uploader.getMessages();
 
     socket.broadcast({
-      event: UploadEvent.UPDATE,
+      event: Events.UPLOAD_UPDATE,
       data: messages,
     });
   } catch (error) {
@@ -37,4 +45,4 @@ emitter.on(UploadEvent.UPDATE, (message) => {
   }
 });
 
-export { downloader, uploader, socket, emitter };
+export { downloader, uploader, socket, emitter, tasker, monitor };

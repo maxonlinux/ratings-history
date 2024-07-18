@@ -4,6 +4,7 @@ import FileComponent from "./FileComponent";
 import { FileMetaData } from "../types";
 import { Events } from "../types";
 import { emitter } from "../services/emitter";
+import { config } from "../config";
 
 const FilesView = () => {
   const [files, setFiles] = useState<FileMetaData[]>([]);
@@ -11,7 +12,7 @@ const FilesView = () => {
 
   const getFiles = async () => {
     setIsLoading(true);
-    const response = await axios.get("http://localhost:3000/api/v1/files");
+    const response = await axios.get(config.apiUrl + "/files");
 
     setIsLoading(false);
     setFiles(response.data.message);
@@ -51,7 +52,9 @@ const FilesView = () => {
   return (
     <div className="relative p-4 w-1/2 overflow-y-auto">
       <h1 className="flex items-center gap-2 text-3xl mb-8 mt-4">
-        <span className="font-thin">Files</span>
+        <span className="font-thin">
+          Files {!isLoading && <>({files.length})</>}
+        </span>
       </h1>
       {!isLoading && files.length ? (
         <div className="flex flex-col gap-4">
@@ -61,7 +64,7 @@ const FilesView = () => {
         </div>
       ) : (
         !isLoading && (
-          <div className="flex flex-col gap-4 items-center justify-center h-full w-full opacity-50">
+          <div className="flex flex-col items-center justify-center h-full w-full text-gray-400">
             <span className="ic text-7xl font-thin">folder</span>No files
           </div>
         )

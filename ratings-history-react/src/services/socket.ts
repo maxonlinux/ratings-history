@@ -1,3 +1,7 @@
+import { config } from "../config";
+import { Events } from "../types";
+import { emitter } from "./emitter";
+
 class WebSocketService {
   private url: string;
   private ws: null | WebSocket;
@@ -18,6 +22,7 @@ class WebSocketService {
 
     this.ws.onopen = () => {
       console.log("WebSocket connected");
+      emitter.dispatch(Events.SOCKET_OPEN, null);
       // Process queued messages
       this.messageQueue.forEach((msg) => {
         this.ws?.send(JSON.stringify(msg));
@@ -90,5 +95,5 @@ class WebSocketService {
   }
 }
 
-const socket = new WebSocketService("ws://localhost:3000/ws");
+const socket = new WebSocketService(config.wsUrl);
 export default socket;

@@ -1,9 +1,9 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { baseUrl } from "../App";
 import axios from "axios";
 import socket from "../services/socket";
 import { Events, Message } from "../types";
 import { emitter } from "../services/emitter";
+import { config } from "../config";
 
 const getMessageColorClass = (message: Message) => {
   if (!message) {
@@ -26,7 +26,7 @@ const getMessageColorClass = (message: Message) => {
 const ManualUpload = () => {
   const [isDragActive, setIsDragActive] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState<string>("");
 
@@ -55,7 +55,7 @@ const ManualUpload = () => {
 
   const handleUpload = (files: FileList | File[]) => {
     try {
-      setUploadedFile(files[0]);
+      setUploadedFiles([...files]);
     } catch (error) {
       console.log(error);
     }
@@ -91,11 +91,11 @@ const ManualUpload = () => {
       fileInputRef.current.value = "";
     }
 
-    setUploadedFile(null);
+    setUploadedFiles([]);
   };
 
   const uploadFileToServer = async () => {
-    if (!uploadedFile) {
+    if (!uploadedFiles.length) {
       setError("No file selected for upload.");
       return;
     }
@@ -104,10 +104,10 @@ const ManualUpload = () => {
 
     try {
       const formData = new FormData();
-      formData.append("file", uploadedFile);
+      uploadedFiles.forEach((file) => formData.append("files", file));
 
       const response = await axios.post(
-        baseUrl + "/api/v1/manual/upload",
+        config.apiUrl + "/manual/upload",
         formData,
         {
           headers: {
@@ -126,7 +126,7 @@ const ManualUpload = () => {
 
   const handleAbort = async () => {
     try {
-      const response = await axios.post(baseUrl + "/api/v1/manual/abort");
+      const response = await axios.post(config.apiUrl + "/manual/abort");
 
       console.log(response.data);
       removeItem();
@@ -164,14 +164,14 @@ const ManualUpload = () => {
 
   const Messages = () => {
     return (
-      <div className="w-full h-full flex flex-col gap-4 h-48 p-2">
+      <div className="w-full h-full flex flex-col gap-4">
         <div
           className={`${lastMessageClassName} flex items-center gap-2 text-sm`}
         >
           {isLoading && (
             <span className="ic animate-spin">progress_activity</span>
           )}
-          {isFailed && <span className="ic">warning</span>}
+          {isFailed && <span className="ic">error</span>}
           {isDone && <span className="ic">done</span>}
           {messages[0].message}
           {isLoading && (
@@ -207,6 +207,7 @@ const ManualUpload = () => {
           className="hidden"
           type="file"
           accept=".zip"
+          multiple={true}
           onChange={handleFileInputChange}
           disabled={isUploading}
           ref={fileInputRef}
@@ -243,15 +244,14 @@ ${isDragActive ? "bg-blue-700/15 border-blue-700" : "border-black/30"}`}
     <div className="mt-4 p-4 border border-black/20 rounded-lg">
       {hasMessages ? <Messages /> : <DragAndDrop />}
 
-      {uploadedFile && (
+      {uploadedFiles.map((file) => (
         <div className="flex justify-between items-center mt-4 text-blue-700 text-xs p-4 border border-blue-700 rounded-md w-full cursor-default">
-          {uploadedFile.name} - {(uploadedFile.size / 1024 / 1024).toFixed(2)}{" "}
-          MB
+          {file.name} - {(file.size / 1024 / 1024).toFixed(2)} MB
           <button className="ic cursor-pointer" onClick={removeItem}>
             close
           </button>
         </div>
-      )}
+      ))}
 
       {error && (
         <div className="flex justify-between items-center mt-4 text-red-700 text-xs p-4 border border-red-700 rounded-md w-full cursor-default">
@@ -262,10 +262,10 @@ ${isDragActive ? "bg-blue-700/15 border-blue-700" : "border-black/30"}`}
         </div>
       )}
 
-      {(uploadedFile || isUploading) && !hasMessages && (
+      {(uploadedFiles.length || isUploading) && !hasMessages && (
         <button
           className="flex gap-2 items-center text-sm mt-4 w-full bg-blue-700 text-white px-6 py-4 rounded-md transition-all hover:pr-4 disabled:bg-gray-300"
-          disabled={!uploadedFile}
+          disabled={!uploadedFiles.length}
           onClick={uploadFileToServer}
         >
           {isUploading ? (

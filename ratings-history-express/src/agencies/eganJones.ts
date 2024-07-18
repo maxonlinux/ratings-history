@@ -1,12 +1,12 @@
-import XmlParser from "../services/parser";
-import { downloadAndExtract } from "../utils";
+import Parser from "../services/parser";
 import fs from "fs/promises";
 import { emit } from ".";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 
 const getEganJonesHistory = (abortController: AbortController) => {
-  let dirPath: string;
+  let zipFilePath: string;
 
   return new Promise(async (resolve, reject) => {
     abortController.signal.addEventListener(
@@ -14,8 +14,8 @@ const getEganJonesHistory = (abortController: AbortController) => {
       async () => {
         emit.message("Aborting...");
 
-        if (dirPath) {
-          await fs.rm(dirPath, { recursive: true, force: true });
+        if (zipFilePath) {
+          await fs.rm(zipFilePath);
         }
 
         reject("Operation aborted");
@@ -26,29 +26,29 @@ const getEganJonesHistory = (abortController: AbortController) => {
     emit.message("Getting Egan Jones history files...");
 
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract(
+    zipFilePath = await downloader.downloadZip(
       "https://17g7-xbrl.egan-jones.com/download-xbrl"
     );
 
-    if (!dirPath) {
-      emit.error("Failed to download or extract history files");
+    if (!zipFilePath) {
+      emit.error("Failed to download ZIP");
       return;
     }
 
     emit.message("Parsing data and creating CSV files...");
 
-    await parser.processXmlFiles(dirPath);
+    await parser.processZipArchive(zipFilePath);
 
     emit.message(
-      "Ethan Jones history files successfully processed. Deleting folder with XML files..."
+      "Ethan Jones history files successfully processed. Deleting ZIP..."
     );
 
-    await fs.rm(dirPath, { recursive: true, force: true });
+    await fs.rm(zipFilePath);
 
-    emit.message("Ethan Jones XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });

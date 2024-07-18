@@ -1,12 +1,12 @@
-import XmlParser from "../services/parser";
-import { downloadAndExtract } from "../utils";
+import Parser from "../services/parser";
 import fs from "fs/promises";
 import { emit } from ".";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 
 const getDemotechRatingsHistory = (abortController: AbortController) => {
-  let dirPath: string;
+  let zipFilePath: string;
 
   return new Promise(async (resolve, reject) => {
     abortController.signal.addEventListener(
@@ -14,8 +14,8 @@ const getDemotechRatingsHistory = (abortController: AbortController) => {
       async () => {
         emit.message("Aborting...");
 
-        if (dirPath) {
-          await fs.rm(dirPath, { recursive: true, force: true });
+        if (zipFilePath) {
+          await fs.rm(zipFilePath);
         }
 
         reject("Operation aborted");
@@ -26,29 +26,31 @@ const getDemotechRatingsHistory = (abortController: AbortController) => {
     emit.message("Getting Demotech history files...");
 
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract("https://www.demotech.com/17g-7.php");
+    zipFilePath = await downloader.downloadZip(
+      "https://www.demotech.com/17g-7.php"
+    );
 
-    emit.message("Downloading and extraction completed!");
+    emit.message("Downloading completed!");
 
-    if (!dirPath) {
-      emit.error("Failed to download or extract history files");
+    if (!zipFilePath) {
+      emit.error("Failed to download ZIP");
       return;
     }
 
     emit.message("Parsing data and creating CSV files...");
 
-    await parser.processXmlFiles(dirPath);
+    await parser.processZipArchive(zipFilePath);
 
     emit.message(
-      "Demotech history files successfully processed. Deleting folder with XML files..."
+      "Demotech history files successfully processed. Deleting ZIP..."
     );
 
-    await fs.rm(dirPath, { recursive: true, force: true });
+    await fs.rm(zipFilePath);
 
-    emit.message("Demotech XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });

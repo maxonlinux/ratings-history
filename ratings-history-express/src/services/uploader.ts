@@ -1,5 +1,5 @@
 import { ChildProcess, fork } from "child_process";
-import { Message, UploadEvent } from "../types";
+import { Message, Events } from "../types";
 import { emitter } from ".";
 import fs from "fs/promises";
 import path from "path";
@@ -32,14 +32,16 @@ class Uploader {
 
     child.on("message", (msg: any) => {
       console.log(msg);
-      const { event, message } = msg;
-      if (event === UploadEvent.MESSAGE) {
-        emitter.emit(UploadEvent.UPDATE, message);
+      const { event, data } = msg;
+      if (event !== Events.UPLOAD_MESSAGE) {
+        return;
       }
+
+      emitter.emit(event, data);
     });
 
     child.on("complete", () => {
-      emitter.emit(UploadEvent.UPDATE, {
+      emitter.emit(Events.UPLOAD_UPDATE, {
         type: "exit",
         message: "Done!",
       });
@@ -48,7 +50,7 @@ class Uploader {
     child.on("error", (err: any) => {
       console.error(err);
 
-      emitter.emit(UploadEvent.UPDATE, {
+      emitter.emit(Events.UPLOAD_UPDATE, {
         type: "error",
         message: err.message ?? err,
       });
@@ -58,7 +60,7 @@ class Uploader {
       await this.cleanup();
 
       console.log(
-        `Child process exited with code ${code} and signal ${signal}`
+        `Child process for manual upload exited with code ${code} and signal ${signal}`
       );
     });
   }

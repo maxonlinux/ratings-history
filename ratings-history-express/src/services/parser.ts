@@ -2,9 +2,11 @@ import path from "path";
 import fs from "fs/promises";
 import { config } from "../config";
 import { InstrumentData } from "../types";
-import { escapeCsvValue } from "../utils";
+import { decode } from "entities";
+import { Entry, ZipFile } from "yauzl";
+import { openReadStream, openZip } from "../utils/archive";
 
-class XmlParser {
+class Parser {
   columnsMap: InstrumentData = {
     RAN: "rating_agency_name",
     FCD: "file_creating_date",
@@ -40,6 +42,13 @@ class XmlParser {
     OBNAME: "obligor_name",
   };
 
+  private escapeCsvValue(value: string | undefined) {
+    return typeof value === "string" &&
+      (value.includes(",") || value.includes('"') || value.includes("\n"))
+      ? `"${value.replace(/"/g, '""')}"`
+      : value;
+  }
+
   parseXml(xmlString: string): InstrumentData[] {
     const rttRegex = /<(?:[a-z]*:)?(RTT)\b[^>]*>.*?<\/(?:[a-z]*:)?\1>/gs;
 
@@ -58,7 +67,7 @@ class XmlParser {
 
     // For testing purposes
     let lastMatch = ["", "", ""];
-    const allowedLastKeys = ["RT", "RST", "RAC", "WST", "OAN"];
+    const allowedLastKeys = ["RT", "RST", "RAC", "WST", "OAN", "ROL"];
     //
 
     while ((match = valueRegex.exec(xmlString)) !== null) {
@@ -79,7 +88,7 @@ class XmlParser {
 
       if (this.columnsMap[key]) {
         const value = cdata || text;
-        currentInstrument[key] = value;
+        currentInstrument[key] = decode(value);
       }
 
       if (key === "RTT") {
@@ -94,74 +103,112 @@ class XmlParser {
     return result;
   }
 
-  async readXmlFiles(directoryPath: string): Promise<string[]> {
+  async createCsvFile(outputFilePath: string) {
     try {
-      const files = await fs.readdir(directoryPath);
-      return files.filter((file) => file.endsWith(".xml"));
+      const columnHeaders = Object.values(this.columnsMap).join(",");
+
+      await fs.writeFile(outputFilePath, columnHeaders, "utf8");
+      // console.log(`CSV file ${outputFilePath} has been created successfully`);
     } catch (err) {
-      throw new Error("Error reading directory: " + err);
+      throw new Error("Error creating CSV file: " + err);
     }
   }
 
-  async writeCsv(outputFilePath: string, data: InstrumentData[]) {
-    const columnHeaders = Object.values(this.columnsMap).join(",");
-
+  async writeToCsvFile(outputFilePath: string, data: InstrumentData[]) {
     try {
-      const csvData = [
-        columnHeaders,
-        ...data.map((row) => Object.values(row).map(escapeCsvValue).join(",")),
-      ].join("\n");
+      const csvData = data
+        .map(
+          (row) => "\n" + Object.values(row).map(this.escapeCsvValue).join(",")
+        )
+        .join("");
 
-      await fs.writeFile(outputFilePath, csvData, "utf8");
+      await fs.appendFile(outputFilePath, csvData, "utf8");
 
-      console.log(`CSV file ${outputFilePath} has been written successfully`);
+      // console.log(`CSV file ${outputFilePath} has been appended successfully`);
     } catch (err) {
-      throw new Error("Error writing CSV file: " + err);
+      throw new Error("Error writing to CSV file: " + err);
     }
   }
 
-  async processXmlFiles(directoryPath: string) {
-    if (!config.outDirPath) {
-      throw new Error("No out dir name in .env!!!");
+  async processXmlData(data: string, csvFileNameSet: Set<string>) {
+    const parsedData = this.parseXml(data);
+
+    if (!parsedData.length) {
+      return;
     }
 
-    console.log("Start parsing XML files...");
+    const { FCD, RAN, SSC, OSC } = parsedData[0];
+    const csvFileName = `${FCD?.replace(/-/g, "")} ${RAN} ${SSC || OSC}`;
 
+    const outputFilePath = path.join(config.outDirPath, `${csvFileName}.csv`);
+
+    // Create new file and add its name in set
+    if (!csvFileNameSet.has(csvFileName)) {
+      await this.createCsvFile(outputFilePath);
+      csvFileNameSet.add(csvFileName);
+    }
+
+    // Append existing file or the new file that was just created
+    await this.writeToCsvFile(outputFilePath, parsedData);
+  }
+
+  async processZipArchive(zipFilePath: string) {
     try {
-      const files = await this.readXmlFiles(directoryPath);
-      const fileDataMap: { [key: string]: InstrumentData[] } = {};
+      const csvFileNameSet: Set<string> = new Set();
+      const zipFile: ZipFile = await openZip(zipFilePath, {
+        lazyEntries: true,
+      });
 
-      for (const file of files) {
-        console.log("Reading " + file);
+      // Function to wait for zipFile to finish processing
+      const zipFilePromise = new Promise<void>((resolve, reject) => {
+        zipFile.on("error", reject);
+        zipFile.on("end", resolve);
+      });
 
-        const filePath = path.join(directoryPath, file);
-        const XMLdata = await fs.readFile(filePath, "utf-8");
+      // Start reading entries from the zip file
+      zipFile.readEntry();
 
-        const parsedData = this.parseXml(XMLdata);
-
-        for (const data of parsedData) {
-          const FCD = data.FCD ? data.FCD.replace(/-/g, "") : "UNDATED";
-          const key = `${FCD} ${data.RAN} ${data.SSC || data.OSC}`;
-
-          if (!fileDataMap[key]) {
-            fileDataMap[key] = [];
-          }
-
-          fileDataMap[key].push(data);
+      const handleEntry = async (entry: Entry) => {
+        // Directory file names end with '/'
+        if (/\/$/.test(entry.fileName)) {
+          // Move to the next entry
+          zipFile.readEntry();
+          return;
         }
-      }
 
-      // Write to CSV file
-      for (const key in fileDataMap) {
-        const outputFilePath = path.join(config.outDirPath, `${key}.csv`);
-        await this.writeCsv(outputFilePath, fileDataMap[key]);
-      }
+        try {
+          console.log("Processing " + entry.fileName);
 
-      console.log(`All XML files parsed successfully!`);
+          // Open read stream for the current entry
+          const data = await openReadStream(zipFile, entry);
+
+          console.log("Processing", entry.fileName);
+
+          await this.processXmlData(data, csvFileNameSet);
+        } catch (err) {
+          console.error(
+            `Error opening read stream for ${entry.fileName}:`,
+            err
+          );
+        }
+
+        // Move to the next entry
+        zipFile.readEntry();
+      };
+
+      // Handle each entry in the zip file
+      zipFile.on("entry", handleEntry);
+
+      // Wait for zipFile to finish processing all entries
+      await zipFilePromise;
+      console.log("All files processed.");
+
+      // Close the zipFile
+      zipFile.close();
     } catch (err) {
-      throw new Error("Error parsing and writing XML to CSV: " + err);
+      throw new Error("Error processing zip file: " + err);
     }
   }
 }
 
-export default XmlParser;
+export default Parser;

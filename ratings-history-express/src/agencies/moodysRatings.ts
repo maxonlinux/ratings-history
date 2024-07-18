@@ -1,16 +1,11 @@
 import { Browser, Page, Target } from "puppeteer";
-import {
-  closeBrowser,
-  downloadAndExtract,
-  flattenFolder,
-  initializeBrowser,
-} from "../utils";
 import fs from "fs/promises";
-import XmlParser from "../services/parser";
+import Parser from "../services/parser";
 import { emit } from ".";
 import { config } from "../config";
+import { downloader } from "../services";
 
-const parser = new XmlParser();
+const parser = new Parser();
 const credentials = config.credentials["moodys-ratings"];
 
 const loadLoginPage = async (page: Page) => {
@@ -144,7 +139,7 @@ const getDownloadUrlAndCookie = async (page: Page, browser: Browser) => {
 };
 
 const getMoodysRatings = (abortController: AbortController) => {
-  let dirPath: string;
+  let zipFilePath: string;
 
   return new Promise(async (resolve, reject) => {
     abortController.signal.addEventListener(
@@ -155,11 +150,8 @@ const getMoodysRatings = (abortController: AbortController) => {
 
           await browser.close();
 
-          if (dirPath) {
-            await fs.rm(dirPath, {
-              recursive: true,
-              force: true,
-            });
+          if (zipFilePath) {
+            await fs.rm(zipFilePath);
           }
 
           reject("Operation aborted");
@@ -173,7 +165,7 @@ const getMoodysRatings = (abortController: AbortController) => {
 
     emit.message("Getting Moody's history files...");
 
-    const { page, browser } = await initializeBrowser();
+    const { page, browser } = await downloader.initializeBrowser();
 
     // Login
     await loadLoginPage(page);
@@ -197,37 +189,36 @@ const getMoodysRatings = (abortController: AbortController) => {
     emit.message("Success: " + downloadUrl);
 
     // Close browser
-    await closeBrowser(browser);
+    await downloader.closeBrowser(browser);
     emit.message("Browser closed");
 
     // Download files
     emit.message(
-      "Downloading and extracting XML files (It could take a while, please be patient...)"
+      "Downloading ZIP (It could take a while, please be patient...)"
     );
 
-    dirPath = await downloadAndExtract(downloadUrl, { cookie });
+    zipFilePath = await downloader.downloadZip(downloadUrl, { cookie });
 
-    if (!dirPath) {
-      emit.error("Failed to download or extract history files");
+    if (!zipFilePath) {
+      emit.error("Failed to download ZIP");
       return;
     }
 
-    emit.message("Downloading and extraction completed!");
+    emit.message("Downloading completed!");
 
     // Process files
     emit.message("Parsing data and creating CSV files...");
 
-    await flattenFolder(dirPath);
-    await parser.processXmlFiles(dirPath);
+    await parser.processZipArchive(zipFilePath);
 
     emit.message(
-      "Moody's history files successfully processed. Deleting folder with XML files..."
+      "Moody's history files successfully processed. Deleting ZIP..."
     );
 
     // Remove XML files from temp dir
-    await fs.rm(dirPath, { recursive: true, force: true });
+    await fs.rm(zipFilePath, { recursive: true, force: true });
 
-    emit.message("Moody's XML files successfully deleted!");
+    emit.message("ZIP successfully deleted!");
 
     resolve("Success");
   });
