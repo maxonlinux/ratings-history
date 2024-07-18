@@ -10,6 +10,8 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: self-hosted
@@ -45,7 +47,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
  
       - name: Install dependencies for backend
         run: npm install
