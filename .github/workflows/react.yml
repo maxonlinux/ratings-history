@@ -1,0 +1,45 @@
+name: Admin Panel Deployment
+
+on:
+  push:
+    paths: 
+    - ratings-history-react/**
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    strategy: 
+      matrix:
+        node-version: [22.x]
+
+    env:
+      VITE_BASE_URL: ${{ envs.API_BASE_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+            
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+ 
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./ratings-history-react
+
+      - name: Build React
+        run: npm run build
+        working-directory: ./ratings-history-react
+
+      - name: Clean up
+        run: npm prune --production
+
+      - name: Write environment variables to .env file
+        working-directory: ./ratings-history-react/dist
+        run: |
+          touch .env
+          echo "VITE_BASE_URL=$VITE_BASE_URL" >> .env
