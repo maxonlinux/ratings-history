@@ -19,16 +19,16 @@ jobs:
       TEMP_DIR: ${{ vars.TEMP_DIR }}
 
       KROLL_BOND_LOGIN: ${{ vars.KROLL_BOND_LOGIN }}
-      KROLL_BOND_PASS: ${{ KROLL_BOND_PASS }}
+      KROLL_BOND_PASS: ${{ vars.KROLL_BOND_PASS }}
 
-      MOODYS_LOGIN: ${{ MOODYS_LOGIN }}
-      MOODYS_PASS: ${{ MOODYS_PASS }}
+      MOODYS_LOGIN: ${{ vars.MOODYS_LOGIN }}
+      MOODYS_PASS: ${{ vars.MOODYS_PASS }}
       
-      MORNING_STAR_LOGIN: ${{ MORNING_STAR_LOGIN }}
+      MORNING_STAR_LOGIN: ${{ vars.MORNING_STAR_LOGIN }}
       MORNING_STAR_PASS: ${{ MORNING_STAR_PASS }}
 
-      AMBEST_LOGIN: ${{ AMBEST_LOGIN }}
-      AMBEST_PASS: ${{ AMBEST_PASS }}
+      AMBEST_LOGIN: ${{ vars.AMBEST_LOGIN }}
+      AMBEST_PASS: ${{ vars.AMBEST_PASS }}
 
     steps:
       - name: Checkout code
@@ -53,8 +53,6 @@ jobs:
       - name: Write environment variables to .env file
         run: |
           touch .env
-          echo "AWS_HOST=${{ secrets.AWS_HOST }}" >> .env
-          echo "DBNAME=${{ secrets.DBNAME }}" >> .env
           echo "PORT=${{ vars.PORT }}" >> .env
           echo "OUT_DIR=${{ vars.OUT_DIR }}" >> .env
           echo "TEMP_DIR=${{ vars.TEMP_DIR }}" >> .env
