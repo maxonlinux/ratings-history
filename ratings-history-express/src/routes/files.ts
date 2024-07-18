@@ -1,37 +1,27 @@
 import { Request, Response, Router } from "express";
-import fs from "fs/promises";
-import path from "path";
-import { FileMetaData } from "../types";
-import { extractMetadataFromFile } from "../utils/general";
-import { config } from "../config";
+import { filer } from "../services";
+import { FileMetadata } from "../types";
 
 const router = Router();
 
 router.get("/", async (req: Request, res: Response) => {
-  const getMetadata = async (files: string[]) => {
-    const metadata: FileMetaData[] = [];
+  try {
+    const metadata = await filer.getAll();
 
-    for (const file of files) {
-      const extension = path.extname(file).toLowerCase();
+    function compareMetadata(a: FileMetadata, b: FileMetadata) {
+      const dateA = a.name.split(" ")[0];
+      const dateB = b.name.split(" ")[0];
 
-      if (extension !== ".csv") {
-        continue;
-      }
+      // Compare dates first (latest date first)
+      if (dateA > dateB) return -1;
+      if (dateA < dateB) return 1;
 
-      const filePath = path.join(config.outDirPath, file);
-      const data = await extractMetadataFromFile(filePath);
-
-      metadata.push(data);
+      return a.name.localeCompare(b.name);
     }
 
-    return metadata;
-  };
+    const sortedMetadata = metadata.sort(compareMetadata);
 
-  try {
-    const files = await fs.readdir(config.outDirPath);
-    const metadata = await getMetadata(files);
-
-    res.json({ message: metadata });
+    res.json({ message: sortedMetadata });
   } catch (error) {
     res.status(500).json({ error: `Error retrieving file data: ${error}` });
   }
@@ -39,15 +29,13 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.get("/:filename", async (req: Request, res: Response) => {
   const { filename } = req.params;
-  const filePath = path.join(config.outDirPath, filename);
 
   try {
-    const stats = await fs.stat(filePath);
-    if (!stats.isFile()) {
+    const metadata = await filer.get(filename);
+
+    if (!metadata) {
       return res.status(404).json({ error: "File not found" });
     }
-
-    const metadata = await extractMetadataFromFile(filePath);
 
     res.json({ message: metadata });
   } catch (error) {
@@ -58,16 +46,13 @@ router.get("/:filename", async (req: Request, res: Response) => {
 router.put("/:filename", async (req: Request, res: Response) => {
   const { filename } = req.params;
   const { newName } = req.body;
-  const filePath = path.join(config.outDirPath, filename);
-  const newFilePath = path.join(config.outDirPath, newName);
 
   try {
-    const stats = await fs.stat(filePath);
-    if (!stats.isFile()) {
+    const renamedFile = await filer.rename(filename, newName);
+
+    if (!renamedFile) {
       return res.status(404).send("File not found");
     }
-
-    await fs.rename(filePath, newFilePath);
 
     res.json({
       message: `File ${filename} renamed to ${newName} successfully`,
@@ -79,15 +64,13 @@ router.put("/:filename", async (req: Request, res: Response) => {
 
 router.delete("/:filename", async (req: Request, res: Response) => {
   const { filename } = req.params;
-  const filePath = path.join(config.outDirPath, filename);
 
   try {
-    const stats = await fs.stat(filePath);
-    if (!stats.isFile()) {
+    const deletedFile = await filer.delete(filename);
+
+    if (!deletedFile) {
       return res.status(404).json({ error: "File not found" });
     }
-
-    await fs.unlink(filePath);
 
     res.json({ message: `File ${filename} deleted successfully` });
   } catch (error) {

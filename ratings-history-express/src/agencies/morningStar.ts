@@ -43,17 +43,19 @@ const waitForCaptcha = async (page: Page) => {
 
   try {
     await page.waitForSelector(captchaSelector, {
-      visible: true,
+      timeout: 0,
     });
 
-    throw new Error(
-      "Captcha detected! Please use the manual upload method or retry in few hours"
-    );
+    throw {
+      type: "CAPTCHA_DETECTED",
+      message:
+        "Captcha detected! Please use the manual upload method or retry in a few minutes",
+    };
   } catch (error) {
-    // const err = error as any;
-    // if (err.name !== "TimeoutError") {
-    //   throw new Error(err.message ?? err);
-    // }
+    const err = error as any;
+    if (err.type === "CAPTCHA_DETECTED") {
+      throw new Error(err.message);
+    }
   }
 };
 
@@ -213,9 +215,10 @@ const getMorningStarHistory = (abortController: AbortController) => {
     const { browser, page } = await downloader.initializeBrowser();
     emit.message("Headless browser initialized");
 
+    const captchaPromise = waitForCaptcha(page);
+    const privacyNoticePromise = agreeWithPrivacyNotice(page);
+
     await loadPage(page);
-    waitForCaptcha(page);
-    await agreeWithPrivacyNotice(page);
     await goToLoginPage(page);
     await enterCredentials(page);
     await submitCredentials(page);
@@ -228,6 +231,9 @@ const getMorningStarHistory = (abortController: AbortController) => {
       emit.error("Failed to get download URL");
       return;
     }
+
+    await captchaPromise;
+    await privacyNoticePromise;
 
     // Close browser
     await downloader.closeBrowser(browser);

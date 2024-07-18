@@ -52,7 +52,7 @@ export interface AgenciesMap {
   [key: string]: AgencyFunction;
 }
 
-export interface FileMetaData {
+export interface FileMetadata {
   name: string;
   date: string;
   lines: number;
@@ -77,8 +77,10 @@ export interface Message {
 export enum Events {
   AGENCY_MESSAGE = "AGENCY_MESSAGE",
   AGENCIES_UPDATE = "AGENCIES_UPDATE",
+
   UPLOAD_MESSAGE = "UPLOAD_MESSAGE",
   UPLOAD_UPDATE = "UPLOAD_UPDATE",
+  
   SYSTEM_INFO = "SYSTEM_INFO",
 }
 

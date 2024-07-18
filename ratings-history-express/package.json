@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node --max-old-space-size=4096 dist/index.js",
-    "dev": "nodemon --ignore out/ --ignore temp/ --exec ts-node src/index.ts"
+    "dev": "nodemon --ignore out/ --ignore temp/ --ignore metadata.json --exec ts-node src/index.ts"
   },
   "author": "Maksym Motoman",
   "license": "ISC",

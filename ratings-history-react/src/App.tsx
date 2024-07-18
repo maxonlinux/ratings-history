@@ -14,7 +14,7 @@ export const agenciesMap: { [key: string]: string } = {
   "demotech-ratings": "Demotech",
   "japan-credit-ratings": "Japan Credit Ratings",
   "kroll-bond-ratings": "Kroll Bond Ratings",
-  "morning-star": "Morning Star",
+  "morning-star": "Morningstar",
   "moodys-ratings": "Moody's Ratings",
 };
 

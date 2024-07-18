@@ -5,6 +5,7 @@ import EventEmitter from "events";
 import { Events, Message } from "../types";
 import Takser from "./tasker";
 import Monitor from "./monitor";
+import Filer from "./filer";
 
 const emitter = new EventEmitter();
 const downloader = new Downloader();
@@ -12,14 +13,16 @@ const uploader = new Uploader();
 const socket = new Socket("/ws");
 const tasker = new Takser(2);
 const monitor = new Monitor();
+const filer = new Filer();
 
-emitter.on(Events.AGENCIES_UPDATE, (data: Message) => {
-  console.log("Update from uploader: ", data);
+emitter.on(Events.AGENCIES_UPDATE, async (data: Message) => {
+  console.log("Update from downloader: ", data);
   const { message, type, agencyName } = data;
 
   try {
     downloader.appendStatus(agencyName, { message, type });
     const agencies = downloader.getAgencies();
+    await filer.update();
 
     socket.broadcast({
       event: Events.AGENCIES_UPDATE,
@@ -30,11 +33,12 @@ emitter.on(Events.AGENCIES_UPDATE, (data: Message) => {
   }
 });
 
-emitter.on(Events.UPLOAD_UPDATE, (data: Message) => {
+emitter.on(Events.UPLOAD_UPDATE, async (data: Message) => {
   console.log("Update from uploader: ", data);
   try {
     uploader.appendMessage(data);
     const messages = uploader.getMessages();
+    await filer.update();
 
     socket.broadcast({
       event: Events.UPLOAD_UPDATE,
@@ -45,4 +49,4 @@ emitter.on(Events.UPLOAD_UPDATE, (data: Message) => {
   }
 });
 
-export { downloader, uploader, socket, emitter, tasker, monitor };
+export { downloader, uploader, socket, emitter, tasker, monitor, filer };

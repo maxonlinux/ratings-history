@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { emptyFolder, exists } from "./utils/general";
 import { config } from "./config";
 import router from "./routes";
-import { socket } from "./services";
+import { filer, socket } from "./services";
 import cors from "cors";
 import fs from "fs/promises";
 
@@ -27,12 +27,20 @@ const main = async () => {
       await fs.mkdir(config.outDirPath, { recursive: true });
     }
 
+    const metadataFileExists = await exists(config.metadataFilePath);
+
+    if (!metadataFileExists) {
+      console.log("Metadata file does not exist. Creating...");
+      await fs.writeFile(config.metadataFilePath, "[]", "utf-8");
+    }
+
+    await filer.update();
+
     const tempDirExists = await exists(config.tempDirPath);
 
     if (!tempDirExists) {
       console.log("Temporary directory does not exist. Creating...");
       await fs.mkdir(config.tempDirPath, { recursive: true });
-      return;
     }
 
     console.log("Deleting all previous temporary files if present...");

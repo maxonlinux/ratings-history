@@ -24,9 +24,11 @@ const ResourceTable: React.FC<{
   return (
     <table className="w-full">
       <thead className="opacity-50">
-        <th className="text-start font-normal">Total</th>
-        <th className="text-center font-normal">Used</th>
-        <th className="text-end font-normal">Free</th>
+        <tr>
+          <th className="text-start font-normal">Total</th>
+          <th className="text-center font-normal">Used</th>
+          <th className="text-end font-normal">Free</th>
+        </tr>
       </thead>
       <tbody>
         <tr>

@@ -149,6 +149,7 @@ const acceptCookies = async (page: Page) => {
   try {
     await page.waitForSelector(acceptButtonSelector, {
       visible: true,
+      timeout: 0,
     });
 
     await page.click(acceptButtonSelector);
@@ -198,8 +199,9 @@ const getKrollBondRatingsHistory = (abortController: AbortController) => {
     emit.message("Headless browser initialized");
 
     // Login
+    const acceptCookiesPromise = acceptCookies(page);
+
     await loadPage(page);
-    acceptCookies(page);
     emit.message("Page loaded");
     await goToLoginPage(page);
     emit.message("Redirected to login page");
@@ -237,6 +239,8 @@ const getKrollBondRatingsHistory = (abortController: AbortController) => {
     }
 
     emit.message(`Found ${downloadUrls.length} URLs`);
+
+    await acceptCookiesPromise;
 
     // Close browser
     await downloader.closeBrowser(browser);

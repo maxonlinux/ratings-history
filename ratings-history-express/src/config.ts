@@ -17,6 +17,7 @@ const config = {
   rootDirPath: process.cwd(),
   outDirPath: process.env.OUT_DIR_PATH,
   tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
+  metadataFilePath: path.resolve(rootDirPath, "metadata.json"),
   credentials: {
     "kroll-bond-ratings": [
       process.env.KROLL_BOND_LOGIN,

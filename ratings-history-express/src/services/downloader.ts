@@ -30,8 +30,8 @@ class Downloader {
         deviceScaleFactor: 1,
       },
       args: [
-        "--disable-web-security",
         "--disable-features=IsolateOrigins,site-per-process",
+        "--incognito",
       ],
     });
 
