@@ -3,10 +3,12 @@ name: Backend Deployment
 on:
   push:
     paths: 
-    - ratings-history-express/**
-    - .github/workflows/backend.yml
+    - ratings-history-expres/**
+    - ratings-history-react/**
+    - ratings-history-public/**
+    - .github/workflows/workflow.yml
     branches:
-      - main  # Adjust to your main branch name
+      - main
 
 jobs:
   deploy:
@@ -42,18 +44,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
  
-      - name: Install dependencies
+      - name: Install dependencies for backend
         run: npm install
-        working-directory: ./ratings-history-express  # Adjust if your package.json is in a subdirectory
+        working-directory: ./ratings-history-express
 
-      - name: Build backend
-        run: npm run build  # Adjust build command if needed
-        working-directory: ./ratings-history-express  # Adjust if your build script is in a subdirectory
-
-      - name: Clean up
-        run: npm prune --production
-
-      - name: Write environment variables to .env file
+      - name: Write environment variables to .env file for backend
         working-directory: ./ratings-history-express/dist
         run: |
           touch .env
@@ -69,5 +64,29 @@ jobs:
           echo "AMBEST_LOGIN=$AMBEST_LOGIN" >> .env
           echo "AMBEST_PASS=$AMBEST_PASS" >> .env
 
+      - name: Build backend
+        run: npm run build
+        working-directory: ./ratings-history-express
+
+      - name: Install dependencies for React admin panel
+        run: npm install
+        working-directory: ./ratings-history-react
+
+      - name: Write environment variables to .env file for Vite
+        working-directory: ./ratings-history-react
+        run: |
+          touch .env
+          echo "VITE_BASE_URL=$VITE_BASE_URL" >> .env
+          
+      - name: Build React
+        run: npm run build
+        working-directory: ./ratings-history-react
+
+      - name: Clean up
+        run: npm prune --production
+
       - name: Restart backend
         run: pm2 restart backend
+        
+      - name: Restart express server for public page
+        run: pm2 restart public
