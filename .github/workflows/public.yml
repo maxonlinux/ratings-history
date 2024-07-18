@@ -4,6 +4,7 @@ on:
   push:
     paths: 
     - ratings-history-public/**
+    - .github/workflows/public.yml
     branches:
       - main  # Adjust to your main branch name
 
