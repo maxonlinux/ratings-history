@@ -20,8 +20,8 @@ jobs:
 
     env:
       PORT: ${{ vars.PORT }}
-      OUT_DIR: ${{ vars.OUT_DIR }}
-      TEMP_DIR: ${{ vars.TEMP_DIR }}
+      OUT_DIR_PATH: ${{ vars.OUT_DIR_PATH }}
+      TEMP_DIR_NAME: ${{ vars.TEMP_DIR_NAME }}
 
       KROLL_BOND_LOGIN: ${{ vars.KROLL_BOND_LOGIN }}
       KROLL_BOND_PASS: ${{ vars.KROLL_BOND_PASS }}
@@ -45,6 +45,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: 'npm'
  
       - name: Install dependencies for backend
         run: npm install
@@ -59,8 +60,8 @@ jobs:
         run: |
           touch .env
           echo "PORT=$PORT" >> .env
-          echo "OUT_DIR=$OUT_DIR" >> .env
-          echo "TEMP_DIR=$TEMP_DIR" >> .env
+          echo "OUT_DIR_PATH=$OUT_DIR_PATH" >> .env
+          echo "TEMP_DIR_NAME=$TEMP_DIR_NAME" >> .env
           echo "KROLL_BOND_LOGIN=$KROLL_BOND_LOGIN" >> .env
           echo "KROLL_BOND_PASS=$KROLL_BOND_PASS" >> .env
           echo "MOODYS_LOGIN=$MOODYS_LOGIN" >> .env
@@ -71,7 +72,7 @@ jobs:
           echo "AMBEST_PASS=$AMBEST_PASS" >> .env
 
       - name: Install dependencies for React admin panel
-        run: npm install
+        run: npm ci
         working-directory: ./ratings-history-react
 
       - name: Write environment variables to .env file for Vite
