@@ -5,18 +5,18 @@ dotenv.config();
 
 const rootDirPath = process.cwd();
 
-if (!process.env.OUT_DIR) {
-  throw new Error("No out directory name in .env");
+if (!process.env.OUT_DIR_PATH) {
+  throw new Error("No out directory path in .env");
 }
 
-if (!process.env.TEMP_DIR) {
+if (!process.env.TEMP_DIR_NAME) {
   throw new Error("No temp directory name in .env");
 }
 
 const config = {
   rootDirPath: process.cwd(),
-  outDirPath: path.join(rootDirPath, process.env.OUT_DIR),
-  tempDirPath: path.join(rootDirPath, process.env.TEMP_DIR),
+  outDirPath: process.env.OUT_DIR_PATH,
+  tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
   credentials: {
     "kroll-bond-ratings": [
       process.env.KROLL_BOND_LOGIN,
