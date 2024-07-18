@@ -34,6 +34,8 @@ jobs:
 
       AMBEST_LOGIN: ${{ vars.AMBEST_LOGIN }}
       AMBEST_PASS: ${{ vars.AMBEST_PASS }}
+      
+      VITE_BASE_URL: ${{ vars.API_BASE_URL }}
 
     steps:
       - name: Checkout code
