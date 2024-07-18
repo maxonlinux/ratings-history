@@ -1,0 +1,39 @@
+name: Public Page Deployment
+
+on:
+  push:
+    paths: 
+    - ratings-history-public/**
+    branches:
+      - main  # Adjust to your main branch name
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    strategy: 
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+            
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+ 
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./ratings-history-public
+
+      - name: Build backend
+        run: npm run build
+        working-directory: ./ratings-history-public
+
+      - name: Clean up
+        run: npm prune --production
+
+      - name: Restart express server
+        run: pm2 restart public
