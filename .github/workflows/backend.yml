@@ -51,10 +51,9 @@ jobs:
         run: npm prune --production
 
       - name: Write environment variables to .env file
+        working-directory: ./ratings-history-express
         run: |
           touch .env
-          echo "AWS_HOST=$AWS_HOST" >> .env
-          echo "DBNAME=$DBNAME" >> .env
           echo "PORT=$PORT" >> .env
           echo "OUT_DIR=$OUT_DIR" >> .env
           echo "TEMP_DIR=$TEMP_DIR" >> .env
@@ -66,3 +65,6 @@ jobs:
           echo "MORNING_STAR_PASS=$MORNING_STAR_PASS" >> .env
           echo "AMBEST_LOGIN=$AMBEST_LOGIN" >> .env
           echo "AMBEST_PASS=$AMBEST_PASS" >> .env
+
+      - name: Restart backend
+        run: pm2 restart backend
