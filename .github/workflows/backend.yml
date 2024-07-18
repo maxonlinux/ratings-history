@@ -32,7 +32,7 @@ jobs:
 
       - name: Build backend
         run: npm run build  # Adjust build command if needed
-        working-directory: ./ratings-history  # Adjust if your build script is in a subdirectory
+        working-directory: ./ratings-history-express  # Adjust if your build script is in a subdirectory
 
       - name: Clean up
         run: npm prune --production
