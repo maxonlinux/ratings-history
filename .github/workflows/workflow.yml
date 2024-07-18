@@ -50,6 +50,10 @@ jobs:
         run: npm install
         working-directory: ./ratings-history-express
 
+      - name: Build backend
+        run: npm run build
+        working-directory: ./ratings-history-express
+
       - name: Write environment variables to .env file for backend
         working-directory: ./ratings-history-express/dist
         run: |
@@ -65,10 +69,6 @@ jobs:
           echo "MORNING_STAR_PASS=$MORNING_STAR_PASS" >> .env
           echo "AMBEST_LOGIN=$AMBEST_LOGIN" >> .env
           echo "AMBEST_PASS=$AMBEST_PASS" >> .env
-
-      - name: Build backend
-        run: npm run build
-        working-directory: ./ratings-history-express
 
       - name: Install dependencies for React admin panel
         run: npm install
