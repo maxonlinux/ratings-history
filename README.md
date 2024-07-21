@@ -16,12 +16,12 @@ The current version covers the following agencies:
 ## Todo
 - [x] Basic functionality
 - [x] Fix Moody's Ratings download
-- [ ] Refactor agencies and Downloader class
+- [x] Refactor agencies and Downloader class
 - [ ] Authentication for admin panel + protect endpoints with auth middleware
 - [ ] Add more agencies
 - [x] Direct parsing of XML files without ZIP extraction
 - [ ] Improve abort and cleanup logic
 - [x] Optimizations for better resource management
-- [ ] Server restart functionality
+- [x] Server restart functionality
 - [ ] General testing and debugging
 - [ ] Write good readme
