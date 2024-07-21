@@ -61,7 +61,7 @@ const abort = () => {
 
 process.on("uncaughtException", (err) => {
   emitter.emit(Events.UPLOAD_MESSAGE, {
-    message: err.message ?? err,
+    message: err,
     type: "error",
   });
 

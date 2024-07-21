@@ -1,249 +1,295 @@
 import { Page } from "puppeteer";
 import Parser from "../services/parser";
 import fs from "fs/promises";
-import { emit } from ".";
 import { config } from "../config";
 import { downloader } from "../services";
+import { MessageEmitter } from "../types";
 
 const parser = new Parser();
 const credentials = config.credentials["morning-star"];
 
-const loadPage = async (page: Page) => {
-  const url = `https://dbrs.morningstar.com/contact`;
+const getMorningStarHistory = async (emit: MessageEmitter) => {
+  emit.message("Getting Morning Star history files...");
 
-  await page.goto(url, {
-    waitUntil: "networkidle0",
-    timeout: 0,
-  });
+  const loadPage = async (page: Page) => {
+    const url = `https://dbrs.morningstar.com/contact`;
 
-  emit.message("Page loaded");
-};
-
-const agreeWithPrivacyNotice = async (page: Page) => {
-  const okButtonSelector =
-    "#mat-dialog-0 > app-gdpr-message > div > div.login-right > button";
-
-  try {
-    await page.waitForSelector(okButtonSelector, {
-      visible: true,
-    });
-
-    await page.click(okButtonSelector);
-
-    emit.message("Agreed with Privacy Notice");
-  } catch (error) {
-    // const err = error as any;
-    // if (err.name === "TimeoutError") {
-    // }
-  }
-};
-
-const waitForCaptcha = async (page: Page) => {
-  const captchaSelector = "#ngrecaptcha-0";
-
-  try {
-    await page.waitForSelector(captchaSelector, {
+    await page.goto(url, {
+      waitUntil: "networkidle0",
       timeout: 0,
     });
 
-    throw {
-      type: "CAPTCHA_DETECTED",
-      message:
-        "Captcha detected! Please use the manual upload method or retry in a few minutes",
-    };
-  } catch (error) {
-    const err = error as any;
-    if (err.type === "CAPTCHA_DETECTED") {
-      throw new Error(err.message);
+    emit.message("Page loaded");
+  };
+
+  const goToLoginPage = async (page: Page) => {
+    const loginButtonSelector =
+      "body > app-root > app-site-header > div > nav.main-nav > div > ul > li:nth-child(7) > a";
+
+    await page.waitForSelector(loginButtonSelector, {
+      timeout: 0,
+      visible: true,
+    });
+
+    await page.click(loginButtonSelector);
+
+    emit.message("Login button clicked");
+
+    await page.waitForNavigation({
+      waitUntil: "networkidle2",
+      timeout: 0,
+    });
+
+    emit.message("Login page loaded");
+  };
+
+  const enterCredentials = async (page: Page) => {
+    const loginInputSelector = "#usernameField";
+    const passwordInputSelector = "#passwordField";
+
+    if (!credentials[0] || !credentials[1]) {
+      throw new Error("No credentials for Morning Star!");
     }
-  }
-};
 
-const goToLoginPage = async (page: Page) => {
-  const loginButtonSelector =
-    "body > app-root > app-site-header > div > nav.main-nav > div > ul > li:nth-child(7) > a";
+    await page.waitForSelector(loginInputSelector, {
+      visible: true,
+      timeout: 0,
+    });
 
-  await page.waitForSelector(loginButtonSelector, {
-    timeout: 0,
-    visible: true,
-  });
+    await page.waitForSelector(passwordInputSelector, {
+      visible: true,
+      timeout: 0,
+    });
 
-  await page.click(loginButtonSelector);
+    await page.type(loginInputSelector, credentials[0]);
+    await page.type(passwordInputSelector, credentials[1]);
 
-  emit.message("Login button clicked");
+    emit.message("Credentials entered");
+  };
 
-  await page.waitForNavigation({
-    waitUntil: "networkidle2",
-    timeout: 0,
-  });
+  const submitCredentials = async (page: Page) => {
+    const submitButtonSelector = "#btn-login";
 
-  emit.message("Login page loaded");
-};
+    await page.waitForSelector(submitButtonSelector, {
+      visible: true,
+      timeout: 0,
+    });
 
-const enterCredentials = async (page: Page) => {
-  const loginInputSelector = "#usernameField";
-  const passwordInputSelector = "#passwordField";
+    await page.click(submitButtonSelector);
 
-  if (!credentials[0] || !credentials[1]) {
-    throw new Error("No credentials for Morning Star!");
-  }
+    emit.message("Credentials submitted");
 
-  await page.waitForSelector(loginInputSelector, {
-    visible: true,
-    timeout: 0,
-  });
+    await page.waitForNavigation({
+      waitUntil: "load",
+      timeout: 0,
+    });
 
-  await page.waitForSelector(passwordInputSelector, {
-    visible: true,
-    timeout: 0,
-  });
+    emit.message("Login to Morning Star successful!");
+  };
 
-  await page.type(loginInputSelector, credentials[0]);
-  await page.type(passwordInputSelector, credentials[1]);
+  const goToDownloadPage = async (page: Page) => {
+    const downloadPageUrl = "https://dbrs.morningstar.com/about/historyAgree";
 
-  emit.message("Credentials entered");
-};
+    await page.goto(downloadPageUrl, {
+      waitUntil: "networkidle2",
+      timeout: 0,
+    });
 
-const submitCredentials = async (page: Page) => {
-  const submitButtonSelector = "#btn-login";
+    emit.message("Download page loaded");
+  };
 
-  await page.waitForSelector(submitButtonSelector, {
-    visible: true,
-    timeout: 0,
-  });
+  const agreeWithTerms = async (page: Page) => {
+    const agreeCheckboxSelector = "#acceptance-check-box";
 
-  await page.click(submitButtonSelector);
+    await page.waitForSelector(agreeCheckboxSelector, {
+      timeout: 0,
+      visible: true,
+    });
 
-  emit.message("Credentials submitted");
+    await page.click(agreeCheckboxSelector);
 
-  await page.waitForNavigation({
-    waitUntil: "load",
-    timeout: 0,
-  });
+    emit.message("Agreed with terms");
+  };
 
-  emit.message("Login to Morning Star successful!");
-};
+  const getDownloadUrl = async (page: Page) => {
+    const downloadButtonSelector =
+      "#main-content > app-history-agree > div > section > div > div > div.grid-2of3 > div:nth-child(6) > button";
 
-const goToDownloadPage = async (page: Page) => {
-  const downloadPageUrl = "https://dbrs.morningstar.com/about/historyAgree";
+    await page.waitForSelector(downloadButtonSelector, {
+      timeout: 0,
+      visible: true,
+    });
 
-  await page.goto(downloadPageUrl, {
-    waitUntil: "networkidle2",
-    timeout: 0,
-  });
+    await page.click(downloadButtonSelector);
 
-  emit.message("Download page loaded");
-};
+    await page.waitForSelector(downloadButtonSelector, {
+      visible: true,
+      timeout: 0,
+    });
 
-const agreeWithTerms = async (page: Page) => {
-  const agreeCheckboxSelector = "#acceptance-check-box";
+    await page.click(downloadButtonSelector);
+    emit.message("Download button clicked");
+  };
 
-  await page.waitForSelector(agreeCheckboxSelector, {
-    timeout: 0,
-    visible: true,
-  });
+  const waitForCaptcha = (page: Page) => {
+    const controller: {
+      resolve: (value?: void | PromiseLike<void>) => void;
+      reject: (reason?: any) => void;
+    } = {
+      resolve: () => {},
+      reject: () => {},
+    };
 
-  await page.click(agreeCheckboxSelector);
+    const promise = new Promise<void>(async (resolve, reject) => {
+      controller.resolve = resolve;
+      controller.reject = reject;
 
-  emit.message("Agreed with terms");
-};
+      const captchaSelector = "#ngrecaptcha-0";
 
-const getDownloadUrl = async (page: Page) => {
-  const downloadButtonSelector =
-    "#main-content > app-history-agree > div > section > div > div > div.grid-2of3 > div:nth-child(6) > button";
+      try {
+        await page.waitForSelector(captchaSelector, {
+          timeout: 0,
+        });
 
-  await page.setRequestInterception(true);
-
-  const downloadUrlPromise = new Promise<string>((resolve) => {
-    const targetDownloadUrl = "https://dbrs.morningstar.com/xbrl/";
-
-    page.on("request", (request) => {
-      if (request.url().startsWith(targetDownloadUrl)) {
-        // Abort the request to prevent the browser from downloading the file
-        request.abort();
-        page.close();
-        resolve(request.url());
-      } else {
-        request.continue();
+        reject(
+          "Captcha detected! Please use the manual upload method or retry in a few minutes"
+        );
+      } catch (error) {
+        reject(error);
       }
     });
-  });
 
-  await page.waitForSelector(downloadButtonSelector, {
-    timeout: 0,
-    visible: true,
-  });
+    return { promise, ...controller };
+  };
 
-  await page.click(downloadButtonSelector);
+  const agreeWithPrivacyNotice = (page: Page) => {
+    const controller: {
+      resolve: (value?: void | PromiseLike<void>) => void;
+      reject: (reason?: any) => void;
+    } = {
+      resolve: () => {},
+      reject: () => {},
+    };
 
-  await page.waitForSelector(downloadButtonSelector, {
-    visible: true,
-    timeout: 0,
-  });
+    const promise = new Promise<void>(async (resolve, reject) => {
+      controller.resolve = resolve;
+      controller.reject = reject;
 
-  await page.click(downloadButtonSelector);
-  emit.message("Download button clicked");
+      const okButtonSelector =
+        "#mat-dialog-0 > app-gdpr-message > div > div.login-right > button";
 
-  // Wait for the download request to be captured
-  const downloadUrl = await downloadUrlPromise;
+      try {
+        await page.waitForSelector(okButtonSelector, {
+          visible: true,
+          timeout: 0,
+        });
 
-  return downloadUrl;
-};
+        await page.click(okButtonSelector);
 
-const getMorningStarHistory = (abortController: AbortController) => {
-  let zipFilePath: string;
+        emit.message("Agreed with Privacy Notice");
+      } catch (error) {
+        reject(error);
+      }
+    });
 
-  return new Promise(async (resolve, reject) => {
-    abortController.signal.addEventListener(
-      "abort",
-      async () => {
-        emit.message("Aborting...");
+    return { promise, ...controller };
+  };
 
-        await browser.close();
+  const browse = (page: Page) => {
+    const controller: {
+      resolve: (value?: void | PromiseLike<void>) => void;
+      reject: (reason?: any) => void;
+    } = {
+      resolve: () => {},
+      reject: () => {},
+    };
 
-        if (zipFilePath) {
-          await fs.rm(zipFilePath);
-        }
+    const promise = new Promise<void>(async (resolve, reject) => {
+      controller.resolve = resolve;
+      controller.reject = reject;
 
-        reject("Operation aborted");
-      },
-      { once: true }
-    );
+      try {
+        await loadPage(page);
+        await goToLoginPage(page);
+        await enterCredentials(page);
+        await submitCredentials(page);
+        await goToDownloadPage(page);
+        await agreeWithTerms(page);
+        await getDownloadUrl(page);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
 
-    emit.message("Getting Morning Star history files...");
+    return { promise, ...controller };
+  };
 
-    const { browser, page } = await downloader.initializeBrowser();
-    emit.message("Headless browser initialized");
+  const browser = await downloader.getBrowser();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
 
-    const captchaPromise = waitForCaptcha(page);
-    const privacyNoticePromise = agreeWithPrivacyNotice(page);
+  const browsePromise = browse(page);
+  const captchaPromise = waitForCaptcha(page);
+  const privacyNoticePromise = agreeWithPrivacyNotice(page);
 
-    await loadPage(page);
-    await goToLoginPage(page);
-    await enterCredentials(page);
-    await submitCredentials(page);
-    await goToDownloadPage(page);
-    await agreeWithTerms(page);
+  try {
+    await page.setRequestInterception(true);
 
-    const downloadUrl = await getDownloadUrl(page);
+    const downloadUrlPromise = new Promise<string>((resolve, reject) => {
+      try {
+        const targetDownloadUrl = "https://dbrs.morningstar.com/xbrl/";
+
+        page.on("request", (request) => {
+          const type = request.resourceType();
+          const restrictedTypes = ["image", "stylesheet", "font", "media"];
+
+          if (restrictedTypes.includes(type)) {
+            request.abort();
+            return;
+          }
+
+          const url = request.url();
+
+          if (url.startsWith(targetDownloadUrl)) {
+            request.abort();
+            page.close();
+            resolve(url);
+            return;
+          }
+
+          request.continue();
+          return;
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    await Promise.race([
+      browsePromise.promise,
+      captchaPromise.promise,
+      privacyNoticePromise.promise,
+    ]);
+
+    browsePromise.resolve();
+    captchaPromise.resolve();
+    privacyNoticePromise.resolve();
+
+    await context.close();
+
+    const downloadUrl = await downloadUrlPromise;
 
     if (!downloadUrl) {
       emit.error("Failed to get download URL");
       return;
     }
 
-    await captchaPromise;
-    await privacyNoticePromise;
-
-    // Close browser
-    await downloader.closeBrowser(browser);
-    emit.message("Browser closed");
-
     emit.message(
       "Downloading ZIP (It could take a while, please be patient...)"
     );
 
-    zipFilePath = await downloader.downloadZip(downloadUrl);
+    const zipFilePath = await downloader.downloadZip(downloadUrl);
 
     if (!zipFilePath) {
       emit.error("Failed to download ZIP");
@@ -264,8 +310,17 @@ const getMorningStarHistory = (abortController: AbortController) => {
 
     emit.message("ZIP successfully deleted!");
 
-    resolve("Success");
-  });
+    emit.done("Completed!");
+  } catch (error) {
+    const err = error as any;
+    emit.error(err.message ?? err);
+  } finally {
+    browsePromise.resolve();
+    captchaPromise.resolve();
+    privacyNoticePromise.resolve();
+
+    await context.close();
+  }
 };
 
 export { getMorningStarHistory };

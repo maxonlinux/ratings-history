@@ -18,19 +18,28 @@ const agenciesFunctionsMap: AgenciesMap = {
   "moodys-ratings": getMoodysRatings,
 };
 
-const emit = {
+const createEmitter = (agencyName: string) => ({
   message: (message: string) => {
-    emitter.emit(Events.AGENCY_MESSAGE, {
+    emitter.emit(Events.AGENCIES_UPDATE, {
+      agencyName,
       message,
       type: "message",
     });
   },
   error: (message: string) => {
-    emitter.emit(Events.AGENCY_MESSAGE, {
+    emitter.emit(Events.AGENCIES_UPDATE, {
+      agencyName,
       message,
       type: "error",
     });
   },
-};
+  done: (message: string) => {
+    emitter.emit(Events.AGENCIES_UPDATE, {
+      agencyName,
+      message,
+      type: "exit",
+    });
+  },
+});
 
-export { agenciesFunctionsMap, emit };
+export { agenciesFunctionsMap, createEmitter };

@@ -1,5 +1,3 @@
-import EventEmitter from "events";
-
 export interface RatingData {
   rating_agency_name: string;
   file_creating_date: string;
@@ -43,20 +41,20 @@ export type CustomHeaders = {
   [key: string]: string;
 };
 
-export type AgencyFunction = (
-  abortController: AbortController,
-  eventEmitter: EventEmitter
-) => Promise<unknown>;
+export type AgencyFunction = (emitter: MessageEmitter) => Promise<unknown>;
 
 export interface AgenciesMap {
   [key: string]: AgencyFunction;
 }
 
-export interface FileMetadata {
-  name: string;
+export interface BaseMetadata {
   date: string;
   lines: number;
   size: number;
+}
+
+export interface FileMetadata extends BaseMetadata {
+  name: string;
 }
 
 export enum Agencies {
@@ -69,18 +67,23 @@ export enum Agencies {
   MOODYS = "moodys-ratings",
 }
 
+export interface MessageEmitter {
+  message: (message: string) => void;
+  error: (message: string) => void;
+  done: (message: string) => void;
+}
+
 export interface Message {
   type: string;
   message: string;
   [key: string]: string;
 }
 export enum Events {
-  AGENCY_MESSAGE = "AGENCY_MESSAGE",
   AGENCIES_UPDATE = "AGENCIES_UPDATE",
 
   UPLOAD_MESSAGE = "UPLOAD_MESSAGE",
   UPLOAD_UPDATE = "UPLOAD_UPDATE",
-  
+
   SYSTEM_INFO = "SYSTEM_INFO",
 }
 

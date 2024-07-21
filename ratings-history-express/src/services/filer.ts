@@ -1,76 +1,138 @@
 import fs from "fs/promises";
 import { config } from "../config";
-import { FileMetadata } from "../types";
+import { BaseMetadata, FileMetadata } from "../types";
 import path from "path";
 import { createReadStream } from "fs";
 import readline from "readline";
+import watcher from "@parcel/watcher";
+import { Mutex } from "async-mutex";
+
+const countLines = async (filePath: string) => {
+  let lineCount = 0;
+
+  const fileStream = createReadStream(filePath);
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
+
+  for await (const _ of rl) {
+    lineCount++;
+  }
+
+  return lineCount;
+};
+
+const generateMetadata = async (filePath: string) => {
+  const stat = await fs.stat(filePath);
+  const lines = await countLines(filePath);
+
+  const metadata = {
+    date: stat.birthtime.toISOString(),
+    size: stat.size,
+    lines,
+  };
+
+  return metadata;
+};
 
 class Filer {
-  constructor() {}
+  private subscription: watcher.AsyncSubscription | undefined;
+  private mutex = new Mutex();
 
-  private async countLines(filePath: string) {
-    let lineCount = 0;
+  constructor() {
+    this.initialize();
+  }
 
-    const fileStream = createReadStream(filePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity,
-    });
+  private async initialize() {
+    const files = await fs.readdir(config.outDirPath);
+    const metadata: FileMetadata[] = [];
 
-    for await (const _ of rl) {
-      lineCount++;
+    for (const file of files) {
+      const meta = await generateMetadata(
+        path.resolve(config.outDirPath, file)
+      );
+
+      metadata.push({ name: file, ...meta });
     }
 
-    return lineCount;
+    await fs.writeFile(
+      config.metadataFilePath,
+      JSON.stringify(metadata, null, 2)
+    );
+
+    this.subscription = await watcher.subscribe(
+      config.outDirPath,
+      this.subscribeHandler.bind(this)
+    );
   }
 
-  private async generateMetadata(filePath: string) {
-    const stats = await fs.stat(filePath);
-    const lineCount = await this.countLines(filePath);
-    const fileName = path.basename(filePath);
+  private async subscribeHandler(err: Error | null, events: watcher.Event[]) {
+    if (err) {
+      console.error("Watcher error:", err.message ?? err);
+      return;
+    }
 
-    const metadata = {
-      name: fileName,
-      date: stats.birthtime.toISOString(),
-      lines: lineCount,
-      size: stats.size,
+    for (const event of events) {
+      this.mutex.runExclusive(async () => {
+        console.log("File event:", event.type, event.path);
+
+        const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
+        const metadataData = JSON.parse(metadataFile) as {
+          [key: string]: BaseMetadata;
+        };
+
+        switch (event.type) {
+          case "create":
+            const metadata = await generateMetadata(event.path);
+            metadataData[path.basename(event.path)] = metadata;
+            break;
+
+          case "update":
+            metadataData[path.basename(event.path)] = await generateMetadata(
+              event.path
+            );
+            break;
+
+          case "delete":
+            delete metadataData[path.basename(event.path)];
+            break;
+
+          default:
+            break;
+        }
+
+        await fs.writeFile(
+          config.metadataFilePath,
+          JSON.stringify(metadataData, null, 2)
+        );
+      });
+    }
+  }
+
+  async get(): Promise<FileMetadata[]>;
+  async get(fileName: string): Promise<FileMetadata | undefined>;
+  async get(fileName?: string) {
+    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
+    const storedMetadata = JSON.parse(metadataFile) as {
+      [key: string]: BaseMetadata;
     };
 
-    return metadata;
-  }
+    if (fileName) {
+      return storedMetadata[fileName]
+        ? { name: fileName, ...storedMetadata[fileName] }
+        : undefined;
+    }
 
-  async get(fileName: string) {
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as FileMetadata[];
-
-    const file = storedMetadata.find((metadata) => metadata.name === fileName);
-
-    return file;
-  }
-
-  async getAll() {
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as FileMetadata[];
-
-    return storedMetadata;
+    return Object.entries(storedMetadata).map(([name, meta]) => ({
+      name,
+      ...meta,
+    }));
   }
 
   async rename(fileName: string, newFileName: string) {
     const filePath = path.join(config.outDirPath, fileName);
     const newFilePath = path.join(config.outDirPath, newFileName);
-
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as FileMetadata[];
-
-    const updatedMetadata = storedMetadata.map((metadata) =>
-      metadata.name === fileName ? { ...metadata, name: newFileName } : metadata
-    );
-
-    await fs.writeFile(
-      config.metadataFilePath,
-      JSON.stringify(updatedMetadata, null, 2)
-    );
-
     await fs.rename(filePath, newFilePath);
 
     return filePath;
@@ -78,64 +140,19 @@ class Filer {
 
   async delete(fileName: string) {
     const filePath = path.resolve(config.outDirPath, fileName);
-
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as FileMetadata[];
-
-    const updatedMetadata = storedMetadata.filter(
-      (metadata) => metadata.name !== fileName
-    );
-
-    await fs.writeFile(
-      config.metadataFilePath,
-      JSON.stringify(updatedMetadata, null, 2)
-    );
-
     await fs.unlink(filePath);
 
     return filePath;
   }
 
-  async update() {
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as FileMetadata[];
+  async unsubscribe() {
+    const subscripton = this.subscription;
 
-    const files = await fs.readdir(config.outDirPath);
-    const filesMap = new Map<string, string>();
-
-    for (const file of files) {
-      if (!file.toLowerCase().endsWith(".csv")) {
-        continue;
-      }
-
-      const stat = await fs.stat(path.resolve(config.outDirPath, file));
-      filesMap.set(file, stat.birthtime.toISOString());
+    if (!subscripton) {
+      throw new Error("Subscription is not initialized yet!");
     }
 
-    const updatedMetadata: FileMetadata[] = [];
-
-    for (const meta of storedMetadata) {
-      const date = filesMap.get(meta.name);
-
-      if (date === meta.date) {
-        updatedMetadata.push(meta);
-      }
-
-      filesMap.delete(meta.name);
-    }
-
-    for (const [file] of filesMap) {
-      const filePath = path.resolve(config.outDirPath, file);
-      const newMetadata = await this.generateMetadata(filePath);
-      updatedMetadata.push(newMetadata);
-    }
-
-    await fs.writeFile(
-      config.metadataFilePath,
-      JSON.stringify(updatedMetadata, null, 2)
-    );
-
-    return updatedMetadata;
+    console.log("Unsubscribed from output directory file events!");
   }
 }
 

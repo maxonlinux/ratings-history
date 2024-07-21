@@ -48,7 +48,7 @@ class Uploader {
     });
 
     child.on("error", (err: any) => {
-      console.error(err);
+      console.error(err.message ?? err);
 
       emitter.emit(Events.UPLOAD_UPDATE, {
         type: "error",

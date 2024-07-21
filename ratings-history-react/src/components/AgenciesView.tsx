@@ -16,7 +16,29 @@ const AgenciesView: React.FC = () => {
 
   useEffect(() => {
     const handleAgenciesUpdate = (data: any) => {
-      setAgencies(data);
+      setAgencies((prev) => {
+        const updatedAgencies = { ...prev };
+
+        if (!Object.getOwnPropertyNames(prev).length) {
+          return data;
+        }
+
+        for (const agencyName in data) {
+          if (!data.hasOwnProperty(agencyName)) {
+            continue;
+          }
+
+          const newMessages = data[agencyName].messages;
+
+          updatedAgencies[agencyName] = {
+            messages: newMessages.length
+              ? newMessages
+              : prev[agencyName].messages,
+          };
+        }
+
+        return updatedAgencies;
+      });
     };
 
     socket.subscribe("AGENCIES_UPDATE", handleAgenciesUpdate);

@@ -1,103 +1,100 @@
 import { Page } from "puppeteer";
 import Parser from "../services/parser";
 import fs from "fs/promises";
-import { emit } from ".";
 import { downloader } from "../services";
+import { MessageEmitter } from "../types";
 
 const parser = new Parser();
 
-const loadPage = async (page: Page) => {
-  const url = `https://www.jcr.co.jp/en/service/company/regu/nrsro/`;
+const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
+  emit.message("Getting JCR history files...");
 
-  await page.goto(url, {
-    waitUntil: "load",
-    timeout: 0,
-  });
-};
+  const loadPage = async (page: Page) => {
+    const url = `https://www.jcr.co.jp/en/service/company/regu/nrsro/`;
 
-const getUrl = async (page: Page) => {
-  const selector =
-    "#content > div > div.mainColumn > section > div > table:nth-child(5) > tbody > tr:nth-child(1) > td > a";
-
-  await page.waitForSelector(selector, {
-    timeout: 0,
-    visible: true,
-  });
-
-  const downloadUrl = await page.$eval(
-    selector,
-    (el) => (el as HTMLAnchorElement).href
-  );
-
-  return downloadUrl;
-};
-
-const getJapanCreditRatingsHistory = (abortController: AbortController) => {
-  let zipFilePath: string;
-
-  return new Promise(async (resolve, reject) => {
-    abortController.signal.addEventListener(
-      "abort",
-      async () => {
-        emit.message("Aborting...");
-
-        if (zipFilePath) {
-          await fs.rm(zipFilePath);
-        }
-
-        reject("Operation aborted");
-      },
-      { once: true }
-    );
-
-    emit.message("Getting JCR history files...");
-
-    const { browser, page } = await downloader.initializeBrowser();
-
-    emit.message("Headless browser initialized");
-
-    await loadPage(page);
+    await page.goto(url, {
+      waitUntil: "load",
+      timeout: 0,
+    });
 
     emit.message("Page loaded");
-    emit.message("Getting download URL...");
+  };
 
-    const downloadUrl = await getUrl(page);
+  const getUrl = async (page: Page) => {
+    const selector =
+      "#content > div > div.mainColumn > section > div > table:nth-child(5) > tbody > tr:nth-child(1) > td > a";
+
+    await page.waitForSelector(selector, {
+      timeout: 0,
+      visible: true,
+    });
+
+    const downloadUrl = await page.$eval(
+      selector,
+      (el) => (el as HTMLAnchorElement).href
+    );
 
     emit.message("Success: " + downloadUrl);
 
-    await downloader.closeBrowser(browser);
+    return downloadUrl;
+  };
 
-    emit.message("Browser closed");
+  const browser = await downloader.getBrowser();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
 
-    if (!downloadUrl) {
-      emit.error("No link found on page!");
+  emit.message("Headless browser initialized");
+
+  await page.setRequestInterception(true);
+
+  page.on("request", (request) => {
+    const type = request.resourceType();
+    const restrictedTypes = ["image", "stylesheet", "font", "media"];
+
+    if (restrictedTypes.includes(type)) {
+      request.abort();
       return;
     }
 
-    emit.message(
-      "Downloading ZIP with XML files (It could take a while, please be patient...)"
-    );
-
-    zipFilePath = await downloader.downloadZip(downloadUrl);
-
-    if (!zipFilePath) {
-      emit.error("Failed to download ZIP");
-      return;
-    }
-
-    emit.message("Downloading completed!");
-    emit.message("Parsing data and creating CSV files...");
-
-    await parser.processZipArchive(zipFilePath);
-
-    emit.message("JCR history files successfully processed. Deleting ZIP...");
-
-    await fs.rm(zipFilePath);
-
-    emit.message("ZIP successfully deleted!");
-
-    resolve("Success");
+    request.continue();
+    return;
   });
+
+  await loadPage(page);
+
+  emit.message("Getting download URL...");
+
+  const downloadUrl = await getUrl(page);
+
+  await context.close();
+
+  if (!downloadUrl) {
+    emit.error("No link found on page!");
+    return;
+  }
+
+  emit.message(
+    "Downloading ZIP with XML files (It could take a while, please be patient...)"
+  );
+
+  const zipFilePath = await downloader.downloadZip(downloadUrl);
+
+  if (!zipFilePath) {
+    emit.error("Failed to download ZIP");
+    return;
+  }
+
+  emit.message("Downloading completed!");
+  emit.message("Parsing data and creating CSV files...");
+
+  await parser.processZipArchive(zipFilePath);
+
+  emit.message("JCR history files successfully processed. Deleting ZIP...");
+
+  await fs.rm(zipFilePath);
+
+  emit.message("ZIP successfully deleted!");
+  emit.done("Completed!");
 };
 
 export { getJapanCreditRatingsHistory };

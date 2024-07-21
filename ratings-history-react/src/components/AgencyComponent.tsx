@@ -5,27 +5,27 @@ import { useEffect } from "react";
 import { emitter } from "../services/emitter";
 import { config } from "../config";
 
+const getMessageColorClass = (message: Message) => {
+  if (!message) {
+    return "opacity-50";
+  }
+
+  if (message.type === "exit") {
+    return "text-blue-700";
+  }
+
+  if (message.type === "error") {
+    return "text-red-700";
+  }
+
+  if (message.type === "message") {
+    return "text-gray-700";
+  }
+};
+
 const AgencyComponent: React.FC<{
   agency: { name: string; messages: Message[] };
 }> = ({ agency }) => {
-  const getMessageColorClass = (message: Message) => {
-    if (!message) {
-      return "opacity-50";
-    }
-
-    if (message.type === "exit") {
-      return "text-blue-700";
-    }
-
-    if (message.type === "error") {
-      return "text-red-700";
-    }
-
-    if (message.type === "message") {
-      return "text-gray-700";
-    }
-  };
-
   const hasMessages = agency.messages.length;
   const isLoading = hasMessages ? agency.messages[0].type === "message" : false;
   const isFailed = hasMessages ? agency.messages[0].type === "error" : false;

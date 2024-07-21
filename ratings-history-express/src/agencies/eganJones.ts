@@ -1,57 +1,36 @@
 import Parser from "../services/parser";
 import fs from "fs/promises";
-import { emit } from ".";
 import { downloader } from "../services";
+import { MessageEmitter } from "../types";
 
 const parser = new Parser();
 
-const getEganJonesHistory = (abortController: AbortController) => {
-  let zipFilePath: string;
+const getEganJonesHistory = async (emit: MessageEmitter) => {
+  emit.message("Getting Egan Jones history files...");
 
-  return new Promise(async (resolve, reject) => {
-    abortController.signal.addEventListener(
-      "abort",
-      async () => {
-        emit.message("Aborting...");
+  emit.message("Downloading ZIP (It could take a while, please be patient...)");
 
-        if (zipFilePath) {
-          await fs.rm(zipFilePath);
-        }
+  const zipFilePath = await downloader.downloadZip(
+    "https://17g7-xbrl.egan-jones.com/download-xbrl"
+  );
 
-        reject("Operation aborted");
-      },
-      { once: true }
-    );
+  if (!zipFilePath) {
+    emit.error("Failed to download ZIP");
+    return;
+  }
 
-    emit.message("Getting Egan Jones history files...");
+  emit.message("Parsing data and creating CSV files...");
 
-    emit.message(
-      "Downloading ZIP (It could take a while, please be patient...)"
-    );
+  await parser.processZipArchive(zipFilePath);
 
-    zipFilePath = await downloader.downloadZip(
-      "https://17g7-xbrl.egan-jones.com/download-xbrl"
-    );
+  emit.message(
+    "Ethan Jones history files successfully processed. Deleting ZIP..."
+  );
 
-    if (!zipFilePath) {
-      emit.error("Failed to download ZIP");
-      return;
-    }
+  await fs.rm(zipFilePath);
 
-    emit.message("Parsing data and creating CSV files...");
-
-    await parser.processZipArchive(zipFilePath);
-
-    emit.message(
-      "Ethan Jones history files successfully processed. Deleting ZIP..."
-    );
-
-    await fs.rm(zipFilePath);
-
-    emit.message("ZIP successfully deleted!");
-
-    resolve("Success");
-  });
+  emit.message("ZIP successfully deleted!");
+  emit.done("Completed!");
 };
 
 export { getEganJonesHistory };

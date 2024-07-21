@@ -3,7 +3,7 @@ import path from "path";
 
 const exists = async (path: string) => {
   try {
-    await fs.stat(path);
+    await fs.access(path);
     return true;
   } catch (error) {
     const err = error as any;

@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const metadata = await filer.getAll();
+    const metadata = await filer.get();
 
     function compareMetadata(a: FileMetadata, b: FileMetadata) {
       const dateA = a.name.split(" ")[0];

@@ -1,28 +1,31 @@
-import { agenciesFunctionsMap } from "../agencies";
-import { emitter } from ".";
-import { fork } from "child_process";
+import { agenciesFunctionsMap, createEmitter } from "../agencies";
 import path from "path";
 import { createWriteStream } from "fs";
-import { CustomHeaders, Events, Message } from "../types";
+import { CustomHeaders, Message } from "../types";
 import puppeteer, { Browser } from "puppeteer";
 import { config } from "../config";
 import axios from "axios";
 
 class Downloader {
-  private processes: Map<string, any>;
   private agencies: Map<string, { messages: Message[] }>;
+  private browser: Browser | undefined;
 
   constructor() {
-    this.processes = new Map();
     this.agencies = new Map();
 
     for (const key in agenciesFunctionsMap) {
       this.agencies.set(key, { messages: [] });
     }
+
+    this.getBrowser();
   }
 
-  public async initializeBrowser() {
-    const browser = await puppeteer.launch({
+  public async getBrowser() {
+    if (this.browser) {
+      return this.browser;
+    }
+
+    this.browser = await puppeteer.launch({
       headless: true,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
@@ -30,25 +33,38 @@ class Downloader {
         deviceScaleFactor: 1,
       },
       args: [
-        "--disable-features=IsolateOrigins,site-per-process",
-        "--incognito",
+        "--no-sandbox", // Disable sandboxing (be cautious of security implications)
+        "--disable-setuid-sandbox", // Disable setuid sandboxing
+        "--disable-dev-shm-usage", // Prevent using /dev/shm for storage
+        "--disable-accelerated-2d-canvas", // Disable 2D canvas acceleration
+        "--disable-gpu", // Disable GPU acceleration
+        "--disable-software-rasterizer", // Disable software rasterizer
+        "--disable-features=VizDisplayCompositor,IsolateOrigins,site-per-process", // Disable the Viz Display Compositor and features related to site isolation, which may affect CPU usage.
+        "--disable-background-timer-throttling", // Prevent throttling of background timers
+        "--disable-backgrounding-occluded-windows", // Prevent background windows from being paused
+        "--disable-extensions", // Disable all extensions
+        "--disable-default-apps", // Disable default apps
+        "--disable-infobars", // Hide info bars (e.g., the “Chrome is being controlled” bar)
+        "--no-first-run", // Skip the first run setup
+        "--noerrdialogs", // Disable error dialogs
+        // "--single-process", // Run browser in a single process BREAKS CONTEXT!!!
+        "--remote-debugging-port=0", // Disable remote debugging (reduces overhead)
+        "--disable-blink-features=AutomationControlled", // Disable automation control features
+        "--no-zygote", // Disables the Zygote process, which handles the creation of new processes
+        "--disable-session-crashed-bubble", // Disables the crash recovery bubble
       ],
     });
 
-    const [page] = await browser.pages();
-
-    //Randomize viewport size
-    await page.setViewport({
-      width: 1280 + Math.floor(Math.random() * 100),
-      height: 800 + Math.floor(Math.random() * 100),
-      deviceScaleFactor: 1,
-    });
-
-    return { page, browser };
+    return this.browser;
   }
 
-  public async closeBrowser(browser: Browser) {
-    await browser.close();
+  public async closeBrowser() {
+    if (!this.browser) {
+      return;
+    }
+
+    await this.browser.close();
+    this.browser = undefined;
   }
 
   public async downloadZip(url: string, customHeaders?: CustomHeaders) {
@@ -81,95 +97,56 @@ class Downloader {
 
       return zipFilePath;
     } catch (error) {
-      const err = String(error);
-      throw new Error(err);
+      const err = error as any;
+      throw new Error(err.message ?? err);
     }
   }
 
   public async initiate(agencyName: string): Promise<void> {
-    const agency = agenciesFunctionsMap.hasOwnProperty(agencyName);
+    if (!this.browser) {
+      throw new Error("Browser is not ready!");
+    }
+
+    const agency = this.agencies.get(agencyName);
 
     if (!agency) {
       throw new Error("Agency not found");
     }
 
-    const existingProcess = this.processes.get(agencyName);
-
-    if (existingProcess) {
+    if (agency.messages.length) {
       throw new Error("Download already in progress");
     }
 
-    const childPath = path.join(__dirname, "../processes", "download");
+    const messageEmitter = createEmitter(agencyName);
 
-    const child = fork(childPath);
-
-    console.log(`Process for ${agencyName} forked`);
-
-    this.processes.set(agencyName, child);
-
-    child.send({ event: "agency", data: agencyName });
-
-    child.on("message", (msg: any) => {
-      const { event, data } = msg;
-
-      if (event !== Events.AGENCY_MESSAGE) {
-        return;
-      }
-
-      emitter.emit(Events.AGENCIES_UPDATE, data);
-    });
-
-    child.on("complete", () => {
-      emitter.emit(Events.AGENCIES_UPDATE, {
-        type: "exit",
-        message: "Done!",
-        agencyName,
-      });
-    });
-
-    child.on("error", (err: any) => {
-      console.error(err);
-
-      emitter.emit(Events.AGENCIES_UPDATE, {
-        type: "error",
-        message: err.message ?? err,
-        agencyName,
-      });
-    });
-
-    child.on("exit", async (code, signal) => {
+    try {
+      await agenciesFunctionsMap[agencyName](messageEmitter);
+    } catch (error) {
+      const err = error as any;
+      messageEmitter.error(err.message ?? err);
+    } finally {
       this.cleanup(agencyName);
-
-      console.log(
-        `Child process for ${agencyName} exited with code ${code} and signal ${signal}`
-      );
-    });
+    }
   }
 
   private cleanup(agencyName: string) {
-    const child = this.processes.get(agencyName);
+    const agency = this.agencies.get(agencyName);
 
-    if (!child) {
-      return;
+    if (!agency) {
+      throw new Error("Agency not found");
     }
 
-    this.processes.delete(agencyName);
     this.agencies.set(agencyName, { messages: [] });
   }
 
   public async abort(agencyName: string): Promise<void> {
-    const agency = agenciesFunctionsMap[agencyName];
+    const agency = this.agencies.get(agencyName);
 
     if (!agency) {
       throw new Error("Agency not found");
     }
-    const process = this.processes.get(agencyName);
 
-    if (!process) {
-      throw new Error("No ongoing operation to abort");
-    }
-
-    process.send({ event: "abort" });
+    // process.send({ event: "abort" });
   }
 
   public appendStatus(agencyName: string, data: Message) {
@@ -182,11 +159,7 @@ class Downloader {
     this.agencies.set(agencyName, { messages: [data, ...agency.messages] });
   }
 
-  public getAgency(agencyName?: string) {
-    if (!agencyName) {
-      return this.agencies;
-    }
-
+  public getAgency(agencyName: string) {
     const agency = this.agencies.get(agencyName);
 
     if (!agency) {

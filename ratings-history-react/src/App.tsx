@@ -62,7 +62,7 @@ function App() {
             <span className="ic animate-spin text-7xl font-thin">
               progress_activity
             </span>
-            Server restarting...
+            Restarting server...
           </>
         ) : (
           <>

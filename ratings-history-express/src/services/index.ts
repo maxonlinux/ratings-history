@@ -15,6 +15,21 @@ const tasker = new Takser(2);
 const monitor = new Monitor();
 const filer = new Filer();
 
+emitter.on(Events.UPLOAD_UPDATE, async (data: Message) => {
+  console.log("Update from uploader: ", data);
+  try {
+    uploader.appendMessage(data);
+    const messages = uploader.getMessages();
+
+    socket.broadcast({
+      event: Events.UPLOAD_UPDATE,
+      data: messages,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+});
+
 emitter.on(Events.AGENCIES_UPDATE, async (data: Message) => {
   console.log("Update from downloader: ", data);
   const { message, type, agencyName } = data;
@@ -22,27 +37,10 @@ emitter.on(Events.AGENCIES_UPDATE, async (data: Message) => {
   try {
     downloader.appendStatus(agencyName, { message, type });
     const agencies = downloader.getAgencies();
-    await filer.update();
 
     socket.broadcast({
       event: Events.AGENCIES_UPDATE,
       data: agencies,
-    });
-  } catch (error) {
-    console.error(error);
-  }
-});
-
-emitter.on(Events.UPLOAD_UPDATE, async (data: Message) => {
-  console.log("Update from uploader: ", data);
-  try {
-    uploader.appendMessage(data);
-    const messages = uploader.getMessages();
-    await filer.update();
-
-    socket.broadcast({
-      event: Events.UPLOAD_UPDATE,
-      data: messages,
     });
   } catch (error) {
     console.error(error);

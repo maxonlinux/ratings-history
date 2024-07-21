@@ -6,6 +6,13 @@ import { decode } from "entities";
 import { Entry, ZipFile } from "yauzl";
 import { openReadStream, openZip } from "../utils/archive";
 
+const escapeCsvValue = (value: string | undefined) => {
+  return typeof value === "string" &&
+    (value.includes(",") || value.includes('"') || value.includes("\n"))
+    ? `"${value.replace(/"/g, '""')}"`
+    : value;
+};
+
 class Parser {
   columnsMap: InstrumentData = {
     RAN: "rating_agency_name",
@@ -41,13 +48,6 @@ class Parser {
     OIG: "obligor_industry_group",
     OBNAME: "obligor_name",
   };
-
-  private escapeCsvValue(value: string | undefined) {
-    return typeof value === "string" &&
-      (value.includes(",") || value.includes('"') || value.includes("\n"))
-      ? `"${value.replace(/"/g, '""')}"`
-      : value;
-  }
 
   parseXml(xmlString: string): InstrumentData[] {
     const rttRegex = /<(?:[a-z]*:)?(RTT)\b[^>]*>.*?<\/(?:[a-z]*:)?\1>/gs;
@@ -108,25 +108,22 @@ class Parser {
       const columnHeaders = Object.values(this.columnsMap).join(",");
 
       await fs.writeFile(outputFilePath, columnHeaders, "utf8");
-      // console.log(`CSV file ${outputFilePath} has been created successfully`);
-    } catch (err) {
-      throw new Error("Error creating CSV file: " + err);
+    } catch (error) {
+      const err = error as any;
+      throw new Error("Error creating CSV file: " + err.message ?? err);
     }
   }
 
-  async writeToCsvFile(outputFilePath: string, data: InstrumentData[]) {
+  async appendCsvFile(outputFilePath: string, data: InstrumentData[]) {
     try {
       const csvData = data
-        .map(
-          (row) => "\n" + Object.values(row).map(this.escapeCsvValue).join(",")
-        )
+        .map((row) => "\n" + Object.values(row).map(escapeCsvValue).join(","))
         .join("");
 
       await fs.appendFile(outputFilePath, csvData, "utf8");
-
-      // console.log(`CSV file ${outputFilePath} has been appended successfully`);
-    } catch (err) {
-      throw new Error("Error writing to CSV file: " + err);
+    } catch (error) {
+      const err = error as any;
+      throw new Error("Error writing to CSV file: " + err.message ?? err);
     }
   }
 
@@ -140,7 +137,11 @@ class Parser {
     const { FCD, RAN, SSC, OSC } = parsedData[0];
     const csvFileName = `${FCD?.replace(/-/g, "")} ${RAN} ${SSC || OSC}`;
 
-    const outputFilePath = path.join(config.outDirPath, `${csvFileName}.csv`);
+    const outputFilePath = path.resolve(
+      config.tempDirPath,
+      "csv",
+      `${csvFileName}.csv`
+    );
 
     // Create new file and add its name in set
     if (!csvFileNameSet.has(csvFileName)) {
@@ -149,7 +150,7 @@ class Parser {
     }
 
     // Append existing file or the new file that was just created
-    await this.writeToCsvFile(outputFilePath, parsedData);
+    await this.appendCsvFile(outputFilePath, parsedData);
   }
 
   async processZipArchive(zipFilePath: string) {
@@ -185,7 +186,8 @@ class Parser {
           console.log("Processing", entry.fileName);
 
           await this.processXmlData(data, csvFileNameSet);
-        } catch (err) {
+        } catch (error) {
+          const err = error as any;
           console.error(
             `Error opening read stream for ${entry.fileName}:`,
             err
@@ -205,8 +207,17 @@ class Parser {
 
       // Close the zipFile
       zipFile.close();
-    } catch (err) {
-      throw new Error("Error processing zip file: " + err);
+
+      // Move all CSV files from temporary to output directory
+      for (const file of csvFileNameSet) {
+        const oldPath = path.resolve(config.tempDirPath, "csv", file + ".csv");
+        const newPath = path.resolve(config.outDirPath, file + ".csv");
+
+        fs.rename(oldPath, newPath);
+      }
+    } catch (error) {
+      const err = error as any;
+      throw new Error("Error processing zip file: " + err.message ?? err);
     }
   }
 }
