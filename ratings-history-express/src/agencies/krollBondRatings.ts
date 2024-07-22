@@ -276,8 +276,7 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
       downloadUrls.push(issuerUrl);
     }
   } catch (error) {
-    const err = error as any;
-    emit.error(err.message ?? err);
+    throw error;
   } finally {
     browsePromise.resolve();
     acceptCookiesPromise.resolve();

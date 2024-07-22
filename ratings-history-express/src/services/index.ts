@@ -11,7 +11,7 @@ const emitter = new EventEmitter();
 const downloader = new Downloader();
 const uploader = new Uploader();
 const socket = new Socket("/ws");
-const tasker = new Takser(2);
+const tasker = new Takser(1);
 const monitor = new Monitor();
 const filer = new Filer();
 

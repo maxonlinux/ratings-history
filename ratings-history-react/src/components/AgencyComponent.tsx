@@ -30,6 +30,9 @@ const AgencyComponent: React.FC<{
   const isLoading = hasMessages ? agency.messages[0].type === "message" : false;
   const isFailed = hasMessages ? agency.messages[0].type === "error" : false;
   const isDone = hasMessages ? agency.messages[0].type === "exit" : false;
+  const isQueued = hasMessages
+    ? agency.messages[0].message === "Queued..."
+    : false;
 
   const lastMessage = agency.messages[0];
   const lastMessageClass = lastMessage ? getMessageColorClass(lastMessage) : "";
@@ -56,7 +59,8 @@ const AgencyComponent: React.FC<{
       </div>
       {isLoading ? (
         <button
-          className="ic ml-auto size-10 bg-red-700/15 text-red-700 flex-shrink-0 rounded-full"
+          disabled={!isQueued}
+          className="ic ml-auto size-10 bg-red-700/15 text-red-700 flex-shrink-0 rounded-full disabled:opacity-50"
           onClick={() => {
             axios.post(config.apiUrl + "/agencies/abort/" + agency.name);
           }}
@@ -70,8 +74,17 @@ const AgencyComponent: React.FC<{
               ? "bg-gray-700/15 text-gray-700"
               : "bg-blue-700/15 text-blue-700"
           } flex-shrink-0 rounded-full`}
-          onClick={() => {
-            axios.post(config.apiUrl + "/agencies/download/" + agency.name);
+          onClick={async () => {
+            try {
+              const res = await axios.post(
+                config.apiUrl + "/agencies/download/" + agency.name
+              );
+
+              console.log(res.data);
+            } catch (error) {
+              const err = error as any;
+              console.error(err.response.data.error);
+            }
           }}
         >
           {isFailed ? "replay" : "download"}

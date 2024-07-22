@@ -43,8 +43,6 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
 
-  emit.message("Headless browser initialized");
-
   await page.setRequestInterception(true);
 
   page.on("request", (request) => {

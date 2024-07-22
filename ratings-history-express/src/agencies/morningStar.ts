@@ -275,8 +275,7 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
       privacyNoticePromise.promise,
     ]);
   } catch (error) {
-    const err = error as any;
-    emit.error(err.message ?? err);
+    throw error;
   } finally {
     browsePromise.resolve();
     captchaPromise.resolve();

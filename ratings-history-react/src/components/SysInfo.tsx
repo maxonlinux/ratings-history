@@ -83,6 +83,10 @@ const SysInfo = () => {
     <div className="flex flex-col gap-4 text-xs">
       <div className="p-4 rounded-lg border border-black/20">
         <h2 className="text-xl font-thin mb-2">CPU</h2>
+        <div className="opacity-50">
+          {sysInfo.cpu.manufacturer} {sysInfo.cpu.brand}, {sysInfo.cpu.cores}{" "}
+          Cores
+        </div>
         <div>
           <span className="opacity-50">Usage:</span>{" "}
           {sysInfo.cpu.usage.toFixed(2)}%

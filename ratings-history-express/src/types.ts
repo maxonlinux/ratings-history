@@ -67,6 +67,8 @@ export enum Agencies {
   MOODYS = "moodys-ratings",
 }
 
+export type Task = () => Promise<void>;
+
 export interface MessageEmitter {
   message: (message: string) => void;
   error: (message: string) => void;

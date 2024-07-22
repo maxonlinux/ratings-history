@@ -1,140 +1,56 @@
-import { ChildProcess, fork } from "child_process";
-import { emitter } from ".";
-import { Events, TaskerEvents } from "../types";
+import { Task } from "../types";
 
-interface Task {
-  event: TaskerEvents;
-  childProcessPath: string;
-  data: string;
-  resolve: () => void;
-  reject: (error: Error) => void;
-}
+class Tasker {
+  private readonly concurrencyLimit: number;
+  private taskQueue: Map<string, Task> = new Map();
+  private runningTasks: Set<string> = new Set();
 
-// For future use
-class Takser {
-  private queuedProcesses: Task[];
-  private activeProcesses: Set<ChildProcess>;
-  private concurrencyLimit: number;
-
-  constructor(concurrencyLimit: number = 5) {
-    this.queuedProcesses = [];
-    this.activeProcesses = new Set();
+  constructor(concurrencyLimit: number) {
     this.concurrencyLimit = concurrencyLimit;
   }
 
-  // public addTask(
-  //   event: TaskerEvents,
-  //   childProcessPath: string,
-  //   data: string
-  // ): Promise<void> {
-  //   return new Promise<void>((resolve, reject) => {
-  //     this.queuedProcesses.push({
-  //       event,
-  //       childProcessPath,
-  //       data,
-  //       resolve,
-  //       reject,
-  //     });
+  public addTask(id: string, task: Task) {
+    this.taskQueue.delete(id);
 
-  //     if (event === TaskerEvents.AGENCY_TASK) {
-  //       emitter.emit(Events.AGENCIES_UPDATE, {
-  //         type: "message",
-  //         message: "Task queued",
-  //         agencyName: data,
-  //       });
-  //     }
+    this.taskQueue.set(id, async () => {
+      await task();
+    });
 
-  //     if (event === TaskerEvents.UPLOAD_TASK) {
-  //       emitter.emit(Events.UPLOAD_UPDATE, {
-  //         type: "message",
-  //         message: "Task queued",
-  //       });
-  //     }
+    this.runningTasks.delete(id);
 
-  //     this.processNext();
-  //   });
-  // }
-
-  // private async processNext() {
-  //   if (
-  //     !this.queuedProcesses.length ||
-  //     this.activeProcesses.size >= this.concurrencyLimit
-  //   ) {
-  //     return;
-  //   }
-
-  //   const { event, childProcessPath, data, resolve, reject } =
-  //     this.queuedProcesses.shift()!;
-
-  //   const child = fork(childProcessPath);
-
-  //   this.activeProcesses.add(child);
-
-  //   child.send({ event, data });
-
-  //   child.on("message", (msg: any) => {
-  //     const { event, data } = msg;
-
-  //     if (event === Events.AGENCY_MESSAGE) {
-  //       emitter.emit(Events.AGENCIES_UPDATE, data);
-  //     }
-
-  //     if (event === Events.UPLOAD_MESSAGE) {
-  //       emitter.emit(Events.UPLOAD_UPDATE, data);
-  //     }
-  //   });
-
-  //   child.on("complete", () => {
-  //     if (event === TaskerEvents.AGENCY_TASK) {
-  //       emitter.emit(Events.AGENCIES_UPDATE, {
-  //         type: "exit",
-  //         message: "Done!",
-  //         agencyName: data,
-  //       });
-  //     }
-
-  //     if (event === TaskerEvents.UPLOAD_TASK) {
-  //       emitter.emit(Events.UPLOAD_UPDATE, {
-  //         type: "exit",
-  //         message: "Done!",
-  //       });
-  //     }
-  //   });
-
-  //   child.on("error", (err: any) => {
-  //     console.error(err.message ?? err);
-  //     this.cleanup(child);
-
-  //     emitter.emit(Events.AGENCIES_UPDATE, {
-  //       type: "error",
-  //       message: err,
-  //       agencyName: data,
-  //     });
-
-  //     reject(err.message ?? err);
-
-  //     this.processNext();
-  //   });
-
-  //   child.on("exit", async (code, signal) => {
-  //     console.log(
-  //       `Child process exited with code ${code} and signal ${signal}`
-  //     );
-
-  //     await this.cleanup(child);
-  //     resolve();
-
-  //     this.processNext();
-  //   });
-  // }
-
-  private async cleanup(child: ChildProcess) {
-    this.activeProcesses.delete(child);
+    if (this.runningTasks.size < this.concurrencyLimit) {
+      this.processQueue();
+    }
   }
 
-  public async abort(): Promise<void> {
-    // child.send({ event: "abort" });
+  private async processQueue() {
+    while (
+      this.taskQueue.size &&
+      this.runningTasks.size < this.concurrencyLimit
+    ) {
+      const [id, task] = this.taskQueue.entries().next().value;
+
+      this.taskQueue.delete(id);
+      this.runningTasks.add(id);
+
+      try {
+        await task();
+      } catch (error) {
+        throw error;
+      } finally {
+        this.runningTasks.delete(id);
+        this.processQueue();
+      }
+    }
+  }
+
+  public cancelTask(id: string) {
+    const taskExists = this.taskQueue.delete(id);
+
+    if (!taskExists) {
+      throw new Error("No queued task with this id");
+    }
   }
 }
 
-export default Takser;
+export default Tasker;

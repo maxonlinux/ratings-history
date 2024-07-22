@@ -15,6 +15,7 @@ body {
 .ic {
   font-family: "Material Symbols Rounded";
   font-variation-settings: "FILL" 0, "GRAD" 0, "opsz" 24;
+  overflow: hidden;
 }
 
 @keyframes load {

@@ -1,18 +1,28 @@
 import { agenciesFunctionsMap, createEmitter } from "../agencies";
 import path from "path";
 import { createWriteStream } from "fs";
-import { CustomHeaders, Message } from "../types";
+import { CustomHeaders, Events, Message, Task } from "../types";
 import puppeteer, { Browser } from "puppeteer";
 import { config } from "../config";
 import axios from "axios";
+import { emitter, tasker } from ".";
+
+interface Agency {
+  messages: Message[];
+}
 
 class Downloader {
-  private agencies: Map<string, { messages: Message[] }>;
+  private agencies: Map<string, Agency>;
+
   private browser: Browser | undefined;
 
   constructor() {
     this.agencies = new Map();
 
+    this.initAgencies();
+  }
+
+  private initAgencies() {
     for (const key in agenciesFunctionsMap) {
       this.agencies.set(key, { messages: [] });
     }
@@ -25,6 +35,7 @@ class Downloader {
 
     this.browser = await puppeteer.launch({
       headless: true,
+      executablePath: config.chromeExec,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
         height: 800 + Math.floor(Math.random() * 100),
@@ -102,28 +113,40 @@ class Downloader {
   }
 
   public async initiate(agencyName: string): Promise<void> {
-    await this.getBrowser();
+    const task: Task = async () => {
+      const agency = this.agencies.get(agencyName);
+      const messageEmitter = createEmitter(agencyName);
 
-    const agency = this.agencies.get(agencyName);
+      if (!agency) {
+        throw new Error("Agency not found");
+      }
 
-    if (!agency) {
-      throw new Error("Agency not found");
-    }
+      try {
+        await agenciesFunctionsMap[agencyName](messageEmitter);
+      } catch (error) {
+        const err = error as any;
+        messageEmitter.error(err.message ?? err);
+      } finally {
+        this.cleanup(agencyName);
+      }
+    };
 
-    if (agency.messages.length) {
-      throw new Error("Download already in progress");
-    }
+    emitter.emit(Events.AGENCIES_UPDATE, {
+      agencyName,
+      message: "Queued...",
+      type: "message",
+    });
 
-    const messageEmitter = createEmitter(agencyName);
+    await tasker.addTask(agencyName, task);
+  }
 
-    try {
-      await agenciesFunctionsMap[agencyName](messageEmitter);
-    } catch (error) {
-      const err = error as any;
-      messageEmitter.error(err.message ?? err);
-    } finally {
-      this.cleanup(agencyName);
-    }
+  public abort(agencyName: string) {
+    tasker.cancelTask(agencyName);
+    emitter.emit(Events.AGENCIES_UPDATE, {
+      agencyName,
+      message: "Cancelled by user",
+      type: "exit",
+    });
   }
 
   private cleanup(agencyName: string) {
@@ -134,16 +157,6 @@ class Downloader {
     }
 
     this.agencies.set(agencyName, { messages: [] });
-  }
-
-  public async abort(agencyName: string): Promise<void> {
-    const agency = this.agencies.get(agencyName);
-
-    if (!agency) {
-      throw new Error("Agency not found");
-    }
-
-    // process.send({ event: "abort" });
   }
 
   public appendStatus(agencyName: string, data: Message) {
