@@ -17,6 +17,7 @@ The current version covers the following agencies:
 - [x] Basic functionality
 - [x] Fix Moody's Ratings download
 - [x] Refactor agencies and Downloader class
+- [x] Task management and queuing
 - [ ] Authentication for admin panel + protect endpoints with auth middleware
 - [ ] Add more agencies
 - [x] Direct parsing of XML files without ZIP extraction
