@@ -1,9 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
-import { emptyFolder, exists } from "./utils/general";
+import { exists } from "./utils/general";
 import { config } from "./config";
 import router from "./routes";
-import { filer, socket } from "./services";
+import { socket } from "./services";
 import cors from "cors";
 import fs from "fs/promises";
 import path from "path";
