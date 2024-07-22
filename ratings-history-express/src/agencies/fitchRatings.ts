@@ -50,6 +50,10 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   await page.setRequestInterception(true);
 
   page.on("request", (request) => {
+    if (request.isInterceptResolutionHandled()) {
+      return;
+    }
+
     const type = request.resourceType();
     const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
@@ -59,7 +63,6 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
     }
 
     request.continue();
-    return;
   });
 
   await loadPage(page);

@@ -118,6 +118,10 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
       const targetDownloadUrl = "https://www.moodys.com/uploadpage/Compliance/";
 
       newPage.on("request", (request) => {
+        if (request.isInterceptResolutionHandled()) {
+          return;
+        }
+
         const url = request.url();
         const headers = request.headers();
 
@@ -134,7 +138,6 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
         }
 
         request.continue();
-        return;
       });
     });
 

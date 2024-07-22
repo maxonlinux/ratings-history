@@ -241,6 +241,10 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
         const targetDownloadUrl = "https://dbrs.morningstar.com/xbrl/";
 
         page.on("request", (request) => {
+          if (request.isInterceptResolutionHandled()) {
+            return;
+          }
+
           const type = request.resourceType();
           const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
@@ -259,7 +263,6 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
           }
 
           request.continue();
-          return;
         });
       } catch (error) {
         reject(error);

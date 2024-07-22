@@ -121,6 +121,10 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
 
     const downloadUrlPromise = new Promise<string>((resolve) => {
       newPage.on("request", (request) => {
+        if (request.isInterceptResolutionHandled()) {
+          return;
+        }
+
         const type = request.resourceType();
         const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
@@ -232,6 +236,10 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     await page.setRequestInterception(true);
 
     page.on("request", (request) => {
+      if (request.isInterceptResolutionHandled()) {
+        return;
+      }
+
       const type = request.resourceType();
       const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
@@ -241,7 +249,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
       }
 
       request.continue();
-      return;
     });
 
     await Promise.race([browsePromise.promise, acceptCookiesPromise.promise]);

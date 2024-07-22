@@ -48,6 +48,10 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
   await page.setRequestInterception(true);
 
   page.on("request", (request) => {
+    if (request.isInterceptResolutionHandled()) {
+      return;
+    }
+
     const type = request.resourceType();
     const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
@@ -57,7 +61,6 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
     }
 
     request.continue();
-    return;
   });
 
   await loadPage(page);
