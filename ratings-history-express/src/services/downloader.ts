@@ -35,7 +35,7 @@ class Downloader {
 
     this.browser = await puppeteer.launch({
       headless: true,
-      executablePath: config.chromeExec,
+      // executablePath: config.chromeExec,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
         height: 800 + Math.floor(Math.random() * 100),
