@@ -233,87 +233,47 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   const captchaPromise = waitForCaptcha(page);
   const privacyNoticePromise = agreeWithPrivacyNotice(page);
 
+  const downloadUrlPromise = new Promise<string>((resolve, reject) => {
+    try {
+      const targetDownloadUrl = "https://dbrs.morningstar.com/xbrl/";
+
+      page.on("request", (request) => {
+        if (request.isInterceptResolutionHandled()) {
+          return;
+        }
+
+        const type = request.resourceType();
+        const restrictedTypes = ["image", "stylesheet", "font", "media"];
+
+        if (restrictedTypes.includes(type)) {
+          request.abort();
+          return;
+        }
+
+        const url = request.url();
+
+        if (url.startsWith(targetDownloadUrl)) {
+          request.abort();
+          page.close();
+          resolve(url);
+          return;
+        }
+
+        request.continue();
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+
   try {
     await page.setRequestInterception(true);
-
-    const downloadUrlPromise = new Promise<string>((resolve, reject) => {
-      try {
-        const targetDownloadUrl = "https://dbrs.morningstar.com/xbrl/";
-
-        page.on("request", (request) => {
-          if (request.isInterceptResolutionHandled()) {
-            return;
-          }
-
-          const type = request.resourceType();
-          const restrictedTypes = ["image", "stylesheet", "font", "media"];
-
-          if (restrictedTypes.includes(type)) {
-            request.abort();
-            return;
-          }
-
-          const url = request.url();
-
-          if (url.startsWith(targetDownloadUrl)) {
-            request.abort();
-            page.close();
-            resolve(url);
-            return;
-          }
-
-          request.continue();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
 
     await Promise.race([
       browsePromise.promise,
       captchaPromise.promise,
       privacyNoticePromise.promise,
     ]);
-
-    browsePromise.resolve();
-    captchaPromise.resolve();
-    privacyNoticePromise.resolve();
-
-    await context.close();
-
-    const downloadUrl = await downloadUrlPromise;
-
-    if (!downloadUrl) {
-      emit.error("Failed to get download URL");
-      return;
-    }
-
-    emit.message(
-      "Downloading ZIP (It could take a while, please be patient...)"
-    );
-
-    const zipFilePath = await downloader.downloadZip(downloadUrl);
-
-    if (!zipFilePath) {
-      emit.error("Failed to download ZIP");
-      return;
-    }
-
-    emit.message("Downloading completed!");
-
-    // Process files
-    emit.message("Parsing data and creating CSV files...");
-    await parser.processZipArchive(zipFilePath);
-
-    emit.message(
-      "Morning Star history files successfully processed. Deleting ZIP..."
-    );
-
-    await fs.rm(zipFilePath);
-
-    emit.message("ZIP successfully deleted!");
-
-    emit.done("Completed!");
   } catch (error) {
     const err = error as any;
     emit.error(err.message ?? err);
@@ -324,6 +284,38 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
 
     await context.close();
   }
+
+  const downloadUrl = await downloadUrlPromise;
+
+  if (!downloadUrl) {
+    emit.error("Failed to get download URL");
+    return;
+  }
+
+  emit.message("Downloading ZIP (It could take a while, please be patient...)");
+
+  const zipFilePath = await downloader.downloadZip(downloadUrl);
+
+  if (!zipFilePath) {
+    emit.error("Failed to download ZIP");
+    return;
+  }
+
+  emit.message("Downloading completed!");
+
+  // Process files
+  emit.message("Parsing data and creating CSV files...");
+  await parser.processZipArchive(zipFilePath);
+
+  emit.message(
+    "Morning Star history files successfully processed. Deleting ZIP..."
+  );
+
+  await fs.rm(zipFilePath);
+
+  emit.message("ZIP successfully deleted!");
+
+  emit.done("Completed!");
 };
 
 export { getMorningStarHistory };

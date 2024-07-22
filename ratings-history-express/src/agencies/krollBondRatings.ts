@@ -184,7 +184,7 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
         emit.message("Cookies accepted");
         resolve();
       } catch (error) {
-        reject();
+        reject(error);
       }
     });
 
@@ -232,6 +232,8 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
   const browsePromise = browse(page);
   const acceptCookiesPromise = acceptCookies(page);
 
+  const downloadUrls: string[] = [];
+
   try {
     await page.setRequestInterception(true);
 
@@ -254,8 +256,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     await Promise.race([browsePromise.promise, acceptCookiesPromise.promise]);
 
     // Getting download links
-    const downloadUrls: string[] = [];
-
     const issueUrl = await getDownloadUrl(
       page,
       browser,
@@ -275,45 +275,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     if (issuerUrl) {
       downloadUrls.push(issuerUrl);
     }
-
-    await context.close();
-
-    if (!downloadUrls.length) {
-      emit.error("Failed to get download URLs");
-      return;
-    }
-
-    emit.message(`Found ${downloadUrls.length} URLs`);
-
-    // Download files
-    emit.message(
-      "Downloading ZIP (It could take a while, please be patient...)"
-    );
-
-    const downloadedFilesPaths: string[] = [];
-
-    for (const url of downloadUrls) {
-      const zipFilePath = await downloader.downloadZip(url);
-      downloadedFilesPaths.push(zipFilePath);
-    }
-
-    emit.message("Downloading and extraction completed!");
-
-    // Process files
-    emit.message("Parsing data and creating CSV files...");
-
-    for (const path of downloadedFilesPaths) {
-      await parser.processZipArchive(path);
-    }
-
-    emit.message("KBRA history files successfully processed. Deleting ZIP...");
-
-    for (const path of downloadedFilesPaths) {
-      await fs.rm(path);
-    }
-
-    emit.message("ZIP successfully deleted!");
-    emit.done("Completed!");
   } catch (error) {
     const err = error as any;
     emit.error(err.message ?? err);
@@ -323,6 +284,41 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
 
     await context.close();
   }
+
+  if (!downloadUrls.length) {
+    emit.error("Failed to get download URLs");
+    return;
+  }
+
+  emit.message(`Found ${downloadUrls.length} URLs`);
+
+  // Download files
+  emit.message("Downloading ZIP (It could take a while, please be patient...)");
+
+  const downloadedFilesPaths: string[] = [];
+
+  for (const url of downloadUrls) {
+    const zipFilePath = await downloader.downloadZip(url);
+    downloadedFilesPaths.push(zipFilePath);
+  }
+
+  emit.message("Downloading and extraction completed!");
+
+  // Process files
+  emit.message("Parsing data and creating CSV files...");
+
+  for (const path of downloadedFilesPaths) {
+    await parser.processZipArchive(path);
+  }
+
+  emit.message("KBRA history files successfully processed. Deleting ZIP...");
+
+  for (const path of downloadedFilesPaths) {
+    await fs.rm(path);
+  }
+
+  emit.message("ZIP successfully deleted!");
+  emit.done("Completed!");
 };
 
 export { getKrollBondRatingsHistory };

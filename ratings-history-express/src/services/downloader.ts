@@ -16,17 +16,15 @@ class Downloader {
     for (const key in agenciesFunctionsMap) {
       this.agencies.set(key, { messages: [] });
     }
-
-    this.getBrowser();
   }
 
   public async getBrowser() {
-    if (this.browser) {
+    if (this.browser && this.browser.connected) {
       return this.browser;
     }
 
     this.browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
         height: 800 + Math.floor(Math.random() * 100),
@@ -97,15 +95,14 @@ class Downloader {
 
       return zipFilePath;
     } catch (error) {
+      console.log(error);
       const err = error as any;
       throw new Error(err.message ?? err);
     }
   }
 
   public async initiate(agencyName: string): Promise<void> {
-    if (!this.browser) {
-      throw new Error("Browser is not ready!");
-    }
+    await this.getBrowser();
 
     const agency = this.agencies.get(agencyName);
 
