@@ -46,14 +46,16 @@ class Filer {
 
   private async initialize() {
     const files = await fs.readdir(config.outDirPath);
-    const metadata: FileMetadata[] = [];
+    const metadata: {
+      [key: string]: BaseMetadata;
+    } = {};
 
     for (const file of files) {
       const meta = await generateMetadata(
         path.resolve(config.outDirPath, file)
       );
 
-      metadata.push({ name: file, ...meta });
+      metadata[file] = meta;
     }
 
     await fs.writeFile(
@@ -75,7 +77,10 @@ class Filer {
 
     for (const event of events) {
       this.mutex.runExclusive(async () => {
-        console.log("File event:", event.type, event.path);
+        console.log(
+          event.type.charAt(0).toUpperCase() + event.type.slice(1) + "d",
+          path.basename(event.path)
+        );
 
         const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
         const metadataData = JSON.parse(metadataFile) as {

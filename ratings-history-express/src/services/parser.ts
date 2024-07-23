@@ -50,52 +50,33 @@ class Parser {
   };
 
   parseXml(xmlString: string): InstrumentData[] {
-    const rttRegex = /<(?:[a-z]*:)?(RTT)\b[^>]*>.*?<\/(?:[a-z]*:)?\1>/gs;
-
     const valueRegex =
-      /<(?:[a-z]*:)?([A-Z]+)\b[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|([^<]*))<\/(?:[a-z]*:)?\1>/gs;
+      /<(?:[a-z]*:)?([A-Z]+)\b[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|([^<]*))<\/(?:[a-z]*:)?\1>|<\/(?:[a-z]*:)?([A-Z]+)\b[^>]*>/gs;
 
     const result = [];
 
-    const currentInstrument: InstrumentData = Object.fromEntries(
-      Object.keys(this.columnsMap).map((key) => [key, undefined])
-    );
+    const currentInstrument: InstrumentData = {};
+
+    for (const key in this.columnsMap) {
+      currentInstrument[key] = undefined;
+    }
 
     let match;
-
-    const hasRTT = rttRegex.test(xmlString);
-
-    // For testing purposes
     let lastMatch = ["", "", ""];
-    const allowedLastKeys = ["RT", "RST", "RAC", "WST", "OAN", "ROL"];
-    //
 
     while ((match = valueRegex.exec(xmlString)) !== null) {
-      const [, key, cdata, text] = match;
-
-      // For testing purposes
-      const [, lastKey, lastCdata, lastText] = lastMatch;
-
-      if (key === "RTT" && !allowedLastKeys.includes(lastKey)) {
-        console.log(lastKey, lastCdata, lastText);
-        throw new Error(
-          "Invalid XML structure: RTT tag must always follow RT tag."
-        );
-      }
+      const [, key, cdata, text, closingTag] = match;
+      const [, lastKey, lastCdata, lastText, lastClosingTag] = lastMatch;
 
       lastMatch = match;
-      //
 
       if (this.columnsMap[key]) {
         const value = cdata || text;
         currentInstrument[key] = decode(value);
       }
 
-      if (key === "RTT") {
-        result.push(currentInstrument);
-      }
-
-      if (!hasRTT && key === "RT") {
+      // If it is a closing tag (means parent tag) and if no closing tag was right before (to avoid pushing empty rows)
+      if (closingTag && !lastClosingTag) {
         result.push(currentInstrument);
       }
     }
