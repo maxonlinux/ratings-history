@@ -184,7 +184,7 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
         emit.message("Cookies accepted");
         resolve();
       } catch (error) {
-        reject(error);
+        // reject(error);
       }
     });
 

@@ -155,7 +155,7 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
           "Captcha detected! Please use the manual upload method or retry in a few minutes"
         );
       } catch (error) {
-        reject(error);
+        // reject(error);
       }
     });
 
@@ -188,7 +188,7 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
 
         emit.message("Agreed with Privacy Notice");
       } catch (error) {
-        reject(error);
+        // reject(error);
       }
     });
 

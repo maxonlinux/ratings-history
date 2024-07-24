@@ -14,81 +14,98 @@ const escapeCsvValue = (value: string | undefined) => {
 };
 
 class Parser {
-  columnsMap: InstrumentData = {
-    RAN: "rating_agency_name",
-    FCD: "file_creating_date",
-    SSC: "sec_category",
-    ISSNAME: "issuer_name",
-    LEI: "legal_entity_identifier",
-    OBT: "object_type_rated",
-    INSTNAME: "instrument_name",
-    CUSIP: "CUSIP_number",
-    CR: "coupon_date",
-    MD: "maturity_date",
-    PV: "par_value",
-    IP: "issued_paid",
-    R: "rating",
-    RAD: "rating_action_date",
-    RAC: "rating_action_class",
-    RT: "rating_type",
-    RST: "rating_sub_type",
-    RTT: "rating_type_term",
-    OAN: "other_announcement_type",
-    WST: "watch_status",
-    ROL: "rating_outlook",
-    ISI: "issuer_identifier",
-    ISIS: "issuer_identifier_schema",
-    INI: "instrument_identifier",
-    INIS: "instrument_identifier_schema",
-    CIK: "central_index_key",
-    OI: "obligor_identifier",
-    OIS: "obligor_identifier_schema",
-    OIOS: "obligor_identifier_other",
-    OSC: "obligor_sec_category",
-    OIG: "obligor_industry_group",
-    OBNAME: "obligor_name",
-  };
+  private readonly xmlTagToCsvColumnMap: { [key: string]: string };
+  private readonly columnHeaders: string[];
+  private readonly keySet: Set<string>;
+  private readonly endTagSet: Set<string>;
+  private readonly defaultInstrument: InstrumentData;
+
+  constructor() {
+    this.xmlTagToCsvColumnMap = {
+      RAN: "rating_agency_name",
+      FCD: "file_creating_date",
+      SSC: "sec_category",
+      ISSNAME: "issuer_name",
+      LEI: "legal_entity_identifier",
+      OBT: "object_type_rated",
+      INSTNAME: "instrument_name",
+      CUSIP: "CUSIP_number",
+      CR: "coupon_date",
+      MD: "maturity_date",
+      PV: "par_value",
+      IP: "issued_paid",
+      R: "rating",
+      RAD: "rating_action_date",
+      RAC: "rating_action_class",
+      RT: "rating_type",
+      RST: "rating_sub_type",
+      RTT: "rating_type_term",
+      OAN: "other_announcement_type",
+      WST: "watch_status",
+      ROL: "rating_outlook",
+      ISI: "issuer_identifier",
+      ISIS: "issuer_identifier_schema",
+      INI: "instrument_identifier",
+      INIS: "instrument_identifier_schema",
+      CIK: "central_index_key",
+      OI: "obligor_identifier",
+      OIS: "obligor_identifier_schema",
+      OIOS: "obligor_identifier_other",
+      OSC: "obligor_sec_category",
+      OIG: "obligor_industry_group",
+      OBNAME: "obligor_name",
+    };
+
+    this.columnHeaders = Object.values(this.xmlTagToCsvColumnMap);
+    this.keySet = new Set(Object.keys(this.xmlTagToCsvColumnMap));
+    this.endTagSet = new Set(["ORD", "INRD"]);
+
+    this.defaultInstrument = {};
+
+    for (const key of this.keySet) {
+      this.defaultInstrument[key] = undefined;
+    }
+  }
 
   parseXml(xmlString: string): InstrumentData[] {
     const valueRegex =
       /<(?:[a-z]*:)?([A-Z]+)\b[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|([^<]*))<\/(?:[a-z]*:)?\1>|<\/(?:[a-z]*:)?([A-Z]+)\b[^>]*>/gs;
 
-    const result = [];
+    const result: Set<InstrumentData> = new Set();
+    const currentInstrument: InstrumentData = { ...this.defaultInstrument };
 
-    const currentInstrument: InstrumentData = {};
+    const matches = xmlString.matchAll(valueRegex);
+    // let lastMatch: (string | undefined)[] = [];
 
-    for (const key in this.columnsMap) {
-      currentInstrument[key] = undefined;
-    }
-
-    let match;
-    let lastMatch = ["", "", ""];
-
-    while ((match = valueRegex.exec(xmlString)) !== null) {
+    for (const match of matches) {
       const [, key, cdata, text, closingTag] = match;
-      const [, lastKey, lastCdata, lastText, lastClosingTag] = lastMatch;
+      // const [, , , , lastClosingTag] = lastMatch;
 
-      lastMatch = match;
+      // lastMatch = [, , , , closingTag];
+
+      // Should append if the closing tag is ORD or INRD (means the end of instrument or obligor so it should be added)
+      const shouldAppendResults = this.endTagSet.has(closingTag);
 
       // If it is a closing tag (means parent tag) and if no closing tag was right before (to avoid pushing duplicates)
-      if (closingTag && !lastClosingTag) {
-        result.push({ ...currentInstrument });
+      // closingTag && !lastClosingTag
+      if (shouldAppendResults) {
+        result.add({ ...currentInstrument });
         continue;
       }
 
       // If this tag exists in columns map (means we need this data)
-      if (this.columnsMap[key]) {
-        const value = cdata || text;
+      if (this.keySet.has(key)) {
+        const value = cdata || text || "";
         currentInstrument[key] = decode(value);
       }
     }
 
-    return result;
+    return [...result];
   }
 
   async createCsvFile(outputFilePath: string) {
     try {
-      const columnHeaders = Object.values(this.columnsMap).join(",");
+      const columnHeaders = this.columnHeaders.join(",");
 
       await fs.writeFile(outputFilePath, columnHeaders, "utf8");
     } catch (error) {
@@ -155,7 +172,7 @@ class Parser {
       const handleEntry = async (entry: Entry) => {
         // Directory file names end with '/'
         if (/\/$/.test(entry.fileName)) {
-          // Move to the next entry
+          // Move to next entry
           zipFile.readEntry();
           return;
         }
@@ -166,16 +183,14 @@ class Parser {
           // Open read stream for the current entry
           const data = await openReadStream(zipFile, entry);
 
+          // Process data from entry
           await this.processXmlData(data, csvFileNameSet);
         } catch (error) {
           const err = error as any;
-          console.error(
-            `Error opening read stream for ${entry.fileName}:`,
-            err
-          );
+          console.error(`Error while processing ${entry.fileName}:`, err);
         }
 
-        // Move to the next entry
+        // Move to next entry
         zipFile.readEntry();
       };
 
