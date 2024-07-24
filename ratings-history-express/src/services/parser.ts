@@ -70,14 +70,16 @@ class Parser {
 
       lastMatch = match;
 
+      // If it is a closing tag (means parent tag) and if no closing tag was right before (to avoid pushing duplicates)
+      if (closingTag && !lastClosingTag) {
+        result.push({ ...currentInstrument });
+        continue;
+      }
+
+      // If this tag exists in columns map (means we need this data)
       if (this.columnsMap[key]) {
         const value = cdata || text;
         currentInstrument[key] = decode(value);
-      }
-
-      // If it is a closing tag (means parent tag) and if no closing tag was right before (to avoid pushing empty rows)
-      if (closingTag && !lastClosingTag) {
-        result.push(currentInstrument);
       }
     }
 
@@ -126,8 +128,8 @@ class Parser {
 
     // Create new file and add its name in set
     if (!csvFileNameSet.has(csvFileName)) {
-      await this.createCsvFile(outputFilePath);
       csvFileNameSet.add(csvFileName);
+      await this.createCsvFile(outputFilePath);
     }
 
     // Append existing file or the new file that was just created
@@ -159,12 +161,10 @@ class Parser {
         }
 
         try {
-          console.log("Processing " + entry.fileName);
+          console.log("Processing", entry.fileName);
 
           // Open read stream for the current entry
           const data = await openReadStream(zipFile, entry);
-
-          console.log("Processing", entry.fileName);
 
           await this.processXmlData(data, csvFileNameSet);
         } catch (error) {
@@ -194,7 +194,7 @@ class Parser {
         const oldPath = path.resolve(config.tempDirPath, "csv", file + ".csv");
         const newPath = path.resolve(config.outDirPath, file + ".csv");
 
-        fs.rename(oldPath, newPath);
+        await fs.rename(oldPath, newPath);
       }
     } catch (error) {
       const err = error as any;
