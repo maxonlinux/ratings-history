@@ -3,7 +3,7 @@ import { open, Entry, ZipFile, Options } from "yauzl";
 const openZip = (path: string, options: Options): Promise<ZipFile> => {
   return new Promise((resolve, reject) => {
     open(path, options, (err, zipFile) => {
-      if (err) return reject(err);
+      if (err) return reject(err.message ?? err);
       resolve(zipFile);
     });
   });
@@ -12,7 +12,7 @@ const openZip = (path: string, options: Options): Promise<ZipFile> => {
 const openReadStream = (zipFile: ZipFile, entry: Entry): Promise<any> => {
   return new Promise((resolve, reject) => {
     zipFile.openReadStream(entry, (err, readStream) => {
-      if (err) return reject(err);
+      if (err) return reject(err.message ?? err);
       let data = "";
       readStream.on("data", (chunk: any) => {
         data += chunk;
@@ -21,7 +21,7 @@ const openReadStream = (zipFile: ZipFile, entry: Entry): Promise<any> => {
         resolve(data);
       });
       readStream.on("error", (err) => {
-        reject(err);
+        reject(err.message ?? err);
       });
     });
   });

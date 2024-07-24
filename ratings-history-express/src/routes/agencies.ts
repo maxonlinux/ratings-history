@@ -32,7 +32,7 @@ router.post("/abort/:agencyName", async (req: Request, res: Response) => {
   const { agencyName } = req.params;
 
   try {
-    await downloader.abort(agencyName);
+    downloader.abort(agencyName);
 
     res.status(200).json({ message: "Aborted " + agencyName });
   } catch (error) {

@@ -1,11 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-import { emptyFolder, exists } from "./utils/general";
+import { exists } from "./utils/general";
 import { config } from "./config";
 import router from "./routes";
-import { filer, socket } from "./services";
+import { socket } from "./services";
 import cors from "cors";
 import fs from "fs/promises";
+import path from "path";
 
 dotenv.config();
 const app = express();
@@ -18,35 +19,37 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/public", express.static(config.outDirPath));
 app.use("/api/v1/", router);
 
+const initializeDirectories = async () => {
+  const outDirExists = await exists(config.outDirPath);
+
+  if (!outDirExists) {
+    console.log("Output directory does not exist. Creating...");
+    await fs.mkdir(config.outDirPath, { recursive: true });
+  }
+
+  const metadataFileExists = await exists(config.metadataFilePath);
+
+  if (!metadataFileExists) {
+    console.log("Metadata file does not exist. Creating...");
+    await fs.writeFile(config.metadataFilePath, "[]", "utf-8");
+  }
+
+  console.log("Deleting all previous temporary files if present...");
+
+  const tempDirExists = await exists(config.tempDirPath);
+
+  if (tempDirExists) {
+    await fs.rm(config.tempDirPath, { recursive: true, force: true });
+  }
+
+  await fs.mkdir(path.resolve(config.tempDirPath, "csv"), { recursive: true });
+
+  console.log("Temporary files deleted!");
+};
+
 const main = async () => {
   try {
-    const outDirExists = await exists(config.outDirPath);
-
-    if (!outDirExists) {
-      console.log("Output directory does not exist. Creating...");
-      await fs.mkdir(config.outDirPath, { recursive: true });
-    }
-
-    const metadataFileExists = await exists(config.metadataFilePath);
-
-    if (!metadataFileExists) {
-      console.log("Metadata file does not exist. Creating...");
-      await fs.writeFile(config.metadataFilePath, "[]", "utf-8");
-    }
-
-    await filer.update();
-
-    const tempDirExists = await exists(config.tempDirPath);
-
-    if (!tempDirExists) {
-      console.log("Temporary directory does not exist. Creating...");
-      await fs.mkdir(config.tempDirPath, { recursive: true });
-    }
-
-    console.log("Deleting all previous temporary files if present...");
-
-    await emptyFolder(config.tempDirPath);
-    console.log("Temporary files deleted!");
+    await initializeDirectories();
 
     const server = app.listen(port, async () => {
       console.log("Server running at port:", port);

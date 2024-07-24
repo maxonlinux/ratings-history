@@ -1,113 +1,108 @@
 import { Page } from "puppeteer";
 import fs from "fs/promises";
 import Parser from "../services/parser";
-import { emit } from ".";
 import { downloader } from "../services";
+import { MessageEmitter } from "../types";
 
 const parser = new Parser();
 
-const loadPage = async (page: Page) => {
-  try {
-    const url = `https://www.fitchratings.com/ratings-history-disclosure`;
+const getFitchRatingsHistory = async (emit: MessageEmitter) => {
+  emit.message("Getting Fitch Ratings history files...");
 
-    await page.goto(url, {
-      waitUntil: "load",
-      timeout: 0,
-    });
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
+  const loadPage = async (page: Page) => {
+    try {
+      const url = `https://www.fitchratings.com/ratings-history-disclosure`;
 
-const getUrl = async (page: Page) => {
-  try {
-    const selector = "#btn-1";
+      await page.goto(url, {
+        waitUntil: "load",
+        timeout: 0,
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
 
-    await page.waitForSelector(selector, {
-      timeout: 0,
-      visible: true,
-    });
+  const getUrl = async (page: Page) => {
+    try {
+      const selector = "#btn-1";
 
-    const downloadUrl = await page.$eval(
-      selector,
-      (el) => (el as HTMLAnchorElement).href
-    );
+      await page.waitForSelector(selector, {
+        timeout: 0,
+        visible: true,
+      });
 
-    return downloadUrl;
-  } catch (error) {
-    return undefined;
-  }
-};
+      const downloadUrl = await page.$eval(
+        selector,
+        (el) => (el as HTMLAnchorElement).href
+      );
 
-const getFitchRatingsHistory = (abortController: AbortController) => {
-  let zipFilePath: string;
+      return downloadUrl;
+    } catch (error) {
+      return undefined;
+    }
+  };
 
-  return new Promise(async (resolve, reject) => {
-    abortController.signal.addEventListener(
-      "abort",
-      async () => {
-        emit.message("Aborting...");
+  const browser = await downloader.getBrowser();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
 
-        if (zipFilePath) {
-          await fs.rm(zipFilePath);
-        }
+  await page.setRequestInterception(true);
 
-        reject("Operation aborted");
-      },
-      { once: true }
-    );
-
-    emit.message("Getting Fitch Ratings history files...");
-
-    const { browser, page } = await downloader.initializeBrowser();
-
-    emit.message("Headless browser initialized");
-
-    await loadPage(page);
-
-    emit.message("Page loaded");
-    emit.message("Getting download URL...");
-
-    const downloadUrl = await getUrl(page);
-
-    emit.message("Success: " + downloadUrl);
-
-    await downloader.closeBrowser(browser);
-
-    emit.message("Browser closed");
-
-    if (!downloadUrl) {
-      emit.error("No link found on page!");
+  page.on("request", (request) => {
+    if (request.isInterceptResolutionHandled()) {
       return;
     }
 
-    emit.message(
-      "Downloading ZIP (It could take a while, please be patient...)"
-    );
+    const type = request.resourceType();
+    const restrictedTypes = ["image", "stylesheet", "font", "media"];
 
-    zipFilePath = await downloader.downloadZip(downloadUrl);
-
-    if (!zipFilePath) {
-      emit.error("Failed to download ZIP");
+    if (restrictedTypes.includes(type)) {
+      request.abort();
       return;
     }
 
-    emit.message("Downloading completed!");
-    emit.message("Parsing data and creating CSV files...");
-
-    await parser.processZipArchive(zipFilePath);
-
-    emit.message(
-      "Fitch Ratings history files successfully processed. Deleting ZIP..."
-    );
-
-    await fs.rm(zipFilePath, { recursive: true, force: true });
-
-    emit.message("Fitch Ratings XML files successfully deleted!");
-
-    resolve("Success");
+    request.continue();
   });
+
+  await loadPage(page);
+
+  emit.message("Page loaded");
+  emit.message("Getting download URL...");
+
+  const downloadUrl = await getUrl(page);
+
+  if (!downloadUrl) {
+    emit.error("No link found on page!");
+    return;
+  }
+
+  emit.message("Success: " + downloadUrl);
+
+  await context.close();
+
+  emit.message("Downloading ZIP (It could take a while, please be patient...)");
+
+  const zipFilePath = await downloader.downloadZip(downloadUrl);
+
+  if (!zipFilePath) {
+    emit.error("Failed to download ZIP");
+    return;
+  }
+
+  emit.message("Downloading completed!");
+  emit.message("Parsing data and creating CSV files...");
+
+  await parser.processZipArchive(zipFilePath);
+
+  emit.message(
+    "Fitch Ratings history files successfully processed. Deleting ZIP..."
+  );
+
+  await fs.rm(zipFilePath, { recursive: true, force: true });
+
+  emit.message("Fitch Ratings XML files successfully deleted!");
+  emit.done("Completed!");
 };
 
 export { getFitchRatingsHistory };

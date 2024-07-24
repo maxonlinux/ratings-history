@@ -20,6 +20,7 @@ export const agenciesMap: { [key: string]: string } = {
 
 function App() {
   const [isRestarting, setIsRestarting] = useState(false);
+  const [shouldReload, setShouldReload] = useState(false);
 
   const handleRestart = async () => {
     try {
@@ -27,6 +28,7 @@ function App() {
       const data = res.data;
 
       console.log(data.message);
+      setShouldReload(true);
       setIsRestarting(true);
     } catch (error) {
       const err = error as any;
@@ -46,6 +48,12 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isRestarting && shouldReload) {
+      location.reload();
+    }
+  }, [isRestarting, shouldReload]);
+
   return (
     <>
       <header className="flex items-center gap-4 px-4 py-4 border-b border-black/15">
@@ -53,7 +61,7 @@ function App() {
       </header>
 
       <div
-        className={`fixed flex flex-col gap-4 justify-center items-center top-0 left-0 w-full h-full bg-black text-white z-50 transition-opacity duration-500 ${
+        className={`fixed flex flex-col gap-4 justify-center items-center top-0 left-0 w-full h-full bg-black text-white z-50 transition-opacity duration-1000 ${
           isRestarting ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -62,12 +70,12 @@ function App() {
             <span className="ic animate-spin text-7xl font-thin">
               progress_activity
             </span>
-            Server restarting...
+            Restarting server...
           </>
         ) : (
           <>
             <span className="ic text-7xl font-thin">check_circle</span>
-            Done!
+            Done! Reloading page...
           </>
         )}
       </div>
