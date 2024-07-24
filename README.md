@@ -5,7 +5,7 @@ This project allows you to download credit rating data from various agencies (se
 The current version covers the following agencies:
 - Kroll Bond Ratings (KBRA, Kroll Bond Rating Agency, LLC)
 - Fitch Ratings (Fitch Ratings, Inc.)
-- Morning Star (Morningstar DBRS, Morningstar, Inc.)
+- Morningstar (Morningstar DBRS, Morningstar, Inc.)
 - Moody's Ratings (Moody’s Investors Service, Inc.)
 - Demotech (Demotech, Inc.)
 - Japan Credit Ratings (Japan Credit Rating Agency, Ltd)
@@ -26,3 +26,8 @@ The current version covers the following agencies:
 - [x] Server restart functionality
 - [ ] General testing and debugging
 - [ ] Write good readme
+
+## References
+- [Center for Municipal Finance](http://www.municipalfinance.org/)
+- [Center for Corporate and Securities Law at the University of San Diego School of Law](https://www.sandiego.edu/law/centers/ccsl)
+- [Rating History Files Publication Guide](https://www.sec.gov/structureddata/rocr-publication-guide#_Toc451345608)
