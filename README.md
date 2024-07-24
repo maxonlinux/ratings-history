@@ -14,7 +14,7 @@ The current version covers the following agencies:
 <sub>_* This list is subject to change_</sub>
 
 ## Issues
-- Duplicated lines in the output CSV files due to the critical bug in the Parser class (please, see the [issue #1](https://github.com/maxonlinux/ratings-history/issues/1)). Fixed in the `dev` branch (see commit [1e9ae37](https://github.com/maxonlinux/ratings-history/commit/1e9ae37b270376626c52716550951d8e5bbfe3c4))
+- ~~Duplicated lines in the output CSV files due to the critical bug in the Parser class (please, see the [issue #1](https://github.com/maxonlinux/ratings-history/issues/1))~~ Fixed ([1e9ae37](https://github.com/maxonlinux/ratings-history/commit/1e9ae37b270376626c52716550951d8e5bbfe3c4))
 
 ## Todo
 - [x] Basic functionality
