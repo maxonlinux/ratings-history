@@ -170,8 +170,8 @@ class Parser {
       zipFile.readEntry();
 
       const handleEntry = async (entry: Entry) => {
-        // Directory file names end with '/'
-        if (/\/$/.test(entry.fileName)) {
+        // Directory file names end with '/' (if directory or non-xml file)
+        if (/\/$|^(?!.*\.xml$).*$/.test(entry.fileName)) {
           // Move to next entry
           zipFile.readEntry();
           return;

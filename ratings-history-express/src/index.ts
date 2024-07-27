@@ -27,13 +27,6 @@ const initializeDirectories = async () => {
     await fs.mkdir(config.outDirPath, { recursive: true });
   }
 
-  const metadataFileExists = await exists(config.metadataFilePath);
-
-  if (!metadataFileExists) {
-    console.log("Metadata file does not exist. Creating...");
-    await fs.writeFile(config.metadataFilePath, "[]", "utf-8");
-  }
-
   console.log("Deleting all previous temporary files if present...");
 
   const tempDirExists = await exists(config.tempDirPath);

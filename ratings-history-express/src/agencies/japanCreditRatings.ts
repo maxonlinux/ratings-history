@@ -1,6 +1,5 @@
 import { Page } from "puppeteer";
 import Parser from "../services/parser";
-import fs from "fs/promises";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
 
@@ -70,32 +69,10 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
   await context.close();
 
   if (!downloadUrl) {
-    emit.error("No link found on page!");
-    return;
+    throw new Error("No link found on page!");
   }
 
-  emit.message(
-    "Downloading ZIP with XML files (It could take a while, please be patient...)"
-  );
-
-  const zipFilePath = await downloader.downloadZip(downloadUrl);
-
-  if (!zipFilePath) {
-    emit.error("Failed to download ZIP");
-    return;
-  }
-
-  emit.message("Downloading completed!");
-  emit.message("Parsing data and creating CSV files...");
-
-  await parser.processZipArchive(zipFilePath);
-
-  emit.message("JCR history files successfully processed. Deleting ZIP...");
-
-  await fs.rm(zipFilePath);
-
-  emit.message("ZIP successfully deleted!");
-  emit.done("Completed!");
+  return { urls: [downloadUrl] };
 };
 
 export { getJapanCreditRatingsHistory };

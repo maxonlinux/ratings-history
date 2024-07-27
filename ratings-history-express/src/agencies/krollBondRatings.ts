@@ -1,11 +1,7 @@
-import { Browser, Page, Target } from "puppeteer";
-import fs from "fs/promises";
-import Parser from "../services/parser";
+import { Browser, Page, Target, TimeoutError } from "puppeteer";
 import { config } from "../config";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
-
-const parser = new Parser();
 
 const credentials = config.credentials["kroll-bond-ratings"];
 
@@ -15,10 +11,20 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
   const loadPage = async (page: Page) => {
     const url = `https://www.kbra.com/`;
 
-    await page.goto(url, {
-      waitUntil: "load",
-      timeout: 0,
-    });
+    try {
+      await page.goto(url, {
+        waitUntil: "load",
+        timeout: 10_000,
+      });
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        emit.message("Page didn't load in 10s. Reloading...");
+        await page.reload();
+        return;
+      }
+
+      throw error;
+    }
   };
 
   const goToLoginPage = async (page: Page) => {
@@ -82,7 +88,7 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     page: Page,
     browser: Browser,
     linkSelector: string
-  ): Promise<string | undefined> => {
+  ): Promise<string> => {
     const downloadPageUrl =
       "https://www.kbra.com/regulatory/disclosures/form-nrsro";
 
@@ -110,8 +116,7 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     const newPage = await newPageTarget.page();
 
     if (!newPage) {
-      emit.error("Failed to open page with download button");
-      return;
+      throw new Error("Failed to open page with download button");
     }
 
     emit.message("New tab with download button opened");
@@ -255,26 +260,12 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
 
     await Promise.race([browsePromise.promise, acceptCookiesPromise.promise]);
 
-    // Getting download links
-    const issueUrl = await getDownloadUrl(
-      page,
-      browser,
-      issueLevelRatingsPageLinkSelector
+    downloadUrls.push(
+      await getDownloadUrl(page, browser, issueLevelRatingsPageLinkSelector),
+      await getDownloadUrl(page, browser, issuerLevelRatingsPageLinkSelector)
     );
 
-    if (issueUrl) {
-      downloadUrls.push(issueUrl);
-    }
-
-    const issuerUrl = await getDownloadUrl(
-      page,
-      browser,
-      issuerLevelRatingsPageLinkSelector
-    );
-
-    if (issuerUrl) {
-      downloadUrls.push(issuerUrl);
-    }
+    return { urls: downloadUrls };
   } catch (error) {
     throw error;
   } finally {
@@ -283,41 +274,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
 
     await context.close();
   }
-
-  if (!downloadUrls.length) {
-    emit.error("Failed to get download URLs");
-    return;
-  }
-
-  emit.message(`Found ${downloadUrls.length} URLs`);
-
-  // Download files
-  emit.message("Downloading ZIP (It could take a while, please be patient...)");
-
-  const downloadedFilesPaths: string[] = [];
-
-  for (const url of downloadUrls) {
-    const zipFilePath = await downloader.downloadZip(url);
-    downloadedFilesPaths.push(zipFilePath);
-  }
-
-  emit.message("Downloading and extraction completed!");
-
-  // Process files
-  emit.message("Parsing data and creating CSV files...");
-
-  for (const path of downloadedFilesPaths) {
-    await parser.processZipArchive(path);
-  }
-
-  emit.message("KBRA history files successfully processed. Deleting ZIP...");
-
-  for (const path of downloadedFilesPaths) {
-    await fs.rm(path);
-  }
-
-  emit.message("ZIP successfully deleted!");
-  emit.done("Completed!");
 };
 
 export { getKrollBondRatingsHistory };

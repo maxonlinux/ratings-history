@@ -38,30 +38,25 @@ const generateMetadata = async (filePath: string) => {
 
 class Filer {
   private subscription: watcher.AsyncSubscription | undefined;
-  private mutex = new Mutex();
+  private mutex: Mutex;
+  private metadata: { [key: string]: BaseMetadata };
 
   constructor() {
+    this.metadata = {};
+    this.mutex = new Mutex();
     this.initialize();
   }
 
   private async initialize() {
     const files = await fs.readdir(config.outDirPath);
-    const metadata: {
-      [key: string]: BaseMetadata;
-    } = {};
 
     for (const file of files) {
       const meta = await generateMetadata(
         path.resolve(config.outDirPath, file)
       );
 
-      metadata[file] = meta;
+      this.metadata[file] = meta;
     }
-
-    await fs.writeFile(
-      config.metadataFilePath,
-      JSON.stringify(metadata, null, 2)
-    );
 
     this.subscription = await watcher.subscribe(
       config.outDirPath,
@@ -76,41 +71,31 @@ class Filer {
     }
 
     for (const event of events) {
+      const basename = path.basename(event.path);
+
       this.mutex.runExclusive(async () => {
         console.log(
           event.type.charAt(0).toUpperCase() + event.type.slice(1) + "d",
-          path.basename(event.path)
+          basename
         );
-
-        const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-        const metadataData = JSON.parse(metadataFile) as {
-          [key: string]: BaseMetadata;
-        };
 
         switch (event.type) {
           case "create":
             const metadata = await generateMetadata(event.path);
-            metadataData[path.basename(event.path)] = metadata;
+            this.metadata[basename] = metadata;
             break;
 
           case "update":
-            metadataData[path.basename(event.path)] = await generateMetadata(
-              event.path
-            );
+            this.metadata[basename] = await generateMetadata(event.path);
             break;
 
           case "delete":
-            delete metadataData[path.basename(event.path)];
+            delete this.metadata[basename];
             break;
 
           default:
             break;
         }
-
-        await fs.writeFile(
-          config.metadataFilePath,
-          JSON.stringify(metadataData, null, 2)
-        );
       });
     }
   }
@@ -118,21 +103,16 @@ class Filer {
   async get(): Promise<FileMetadata[]>;
   async get(fileName: string): Promise<FileMetadata | undefined>;
   async get(fileName?: string) {
-    const metadataFile = await fs.readFile(config.metadataFilePath, "utf8");
-    const storedMetadata = JSON.parse(metadataFile) as {
-      [key: string]: BaseMetadata;
-    };
-
-    if (fileName) {
-      return storedMetadata[fileName]
-        ? { name: fileName, ...storedMetadata[fileName] }
-        : undefined;
+    if (!fileName) {
+      return Object.entries(this.metadata).map(([name, meta]) => ({
+        name,
+        ...meta,
+      }));
     }
 
-    return Object.entries(storedMetadata).map(([name, meta]) => ({
-      name,
-      ...meta,
-    }));
+    const meta = this.metadata[fileName];
+
+    return meta ? { name: fileName, ...meta } : undefined;
   }
 
   async rename(fileName: string, newFileName: string) {

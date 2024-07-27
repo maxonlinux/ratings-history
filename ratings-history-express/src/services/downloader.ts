@@ -6,6 +6,8 @@ import puppeteer, { Browser } from "puppeteer";
 import { config } from "../config";
 import axios from "axios";
 import { emitter, tasker } from ".";
+import fs from "fs/promises";
+import Parser from "./parser";
 
 interface Agency {
   messages: Message[];
@@ -34,7 +36,7 @@ class Downloader {
     }
 
     this.browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
       // executablePath: config.chromeExec,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
@@ -122,7 +124,46 @@ class Downloader {
       }
 
       try {
-        await agenciesFunctionsMap[agencyName](messageEmitter);
+        const { urls, headers } = await agenciesFunctionsMap[agencyName](
+          messageEmitter
+        );
+
+        // Download files
+
+        messageEmitter.message(
+          "Downloading ZIP (It could take a while, please be patient...)"
+        );
+
+        const downloadedFilesPaths: string[] = [];
+
+        for (const url of urls) {
+          const zipFilePath = await this.downloadZip(url, headers);
+          downloadedFilesPaths.push(zipFilePath);
+        }
+
+        messageEmitter.message("Downloading and extraction completed!");
+
+        // Process files
+
+        const parser = new Parser();
+
+        messageEmitter.message(
+          "Parsing data and creating CSV files (It could take a while, please be patient...)"
+        );
+
+        for (const path of downloadedFilesPaths) {
+          await parser.processZipArchive(path);
+        }
+
+        messageEmitter.message(
+          "XBRL files successfully processed. Deleting ZIP..."
+        );
+
+        for (const path of downloadedFilesPaths) {
+          await fs.rm(path);
+        }
+
+        messageEmitter.done("Completed!");
       } catch (error) {
         const err = error as any;
         messageEmitter.error(err.message ?? err);
@@ -137,7 +178,7 @@ class Downloader {
       type: "message",
     });
 
-    await tasker.addTask(agencyName, task);
+    tasker.addTask(agencyName, task);
   }
 
   public abort(agencyName: string) {

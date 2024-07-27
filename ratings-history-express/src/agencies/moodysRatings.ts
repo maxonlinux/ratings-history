@@ -1,11 +1,8 @@
 import { Browser, Page, Target } from "puppeteer";
-import fs from "fs/promises";
-import Parser from "../services/parser";
 import { config } from "../config";
 import { downloader } from "../services";
-import { MessageEmitter } from "../types";
+import { AgencyFunctionData, MessageEmitter } from "../types";
 
-const parser = new Parser();
 const credentials = config.credentials["moodys-ratings"];
 
 const getMoodysRatings = async (emit: MessageEmitter) => {
@@ -106,94 +103,67 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
     const newPage = await newPageTarget.page();
 
     if (!newPage) {
-      emit.error("Failed to open tab with download");
-      return;
+      throw new Error("Failed to open tab with download");
     }
 
     emit.message("New tab with download page opened");
 
     await newPage.setRequestInterception(true);
 
-    const downloadUrlAndCookiePromise = new Promise<string>((resolve) => {
-      const targetDownloadUrl = "https://www.moodys.com/uploadpage/Compliance/";
+    const downloadUrlAndCookiePromise = new Promise<AgencyFunctionData>(
+      (resolve, reject) => {
+        const targetDownloadUrl =
+          "https://www.moodys.com/uploadpage/Compliance/";
 
-      newPage.on("request", (request) => {
-        if (request.isInterceptResolutionHandled()) {
-          return;
-        }
+        newPage.on("request", (request) => {
+          if (request.isInterceptResolutionHandled()) {
+            return;
+          }
 
-        const url = request.url();
-        const headers = request.headers();
+          try {
+            const url = request.url();
+            const headers = request.headers();
 
-        if (url.startsWith(targetDownloadUrl)) {
-          request.abort();
-          newPage.close();
-          resolve(
-            JSON.stringify({
-              downloadUrl: url,
-              cookie: headers["cookie"],
-            })
-          );
-          return;
-        }
+            if (url.startsWith(targetDownloadUrl)) {
+              request.abort();
+              newPage.close();
 
-        request.continue();
-      });
-    });
+              resolve({
+                urls: [url],
+                headers: { cookie: headers["cookie"] },
+              });
 
-    const resolved = await downloadUrlAndCookiePromise;
+              return;
+            }
 
-    const { downloadUrl, cookie } = JSON.parse(resolved);
+            request.continue();
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+    );
 
-    return { downloadUrl, cookie };
+    return await downloadUrlAndCookiePromise;
   };
 
   const browser = await downloader.getBrowser();
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
 
-  // Login
-  await loadLoginPage(page);
-  await enterCredentials(page);
-  await submitCredentials(page);
+  try {
+    await loadLoginPage(page);
+    await enterCredentials(page);
+    await submitCredentials(page);
 
-  const downloadUrlAndCookie = await getDownloadUrlAndCookie(page, browser);
+    const downloadUrlAndCookie = await getDownloadUrlAndCookie(page, browser);
 
-  if (!downloadUrlAndCookie) {
-    emit.error("Failed to get download URL and/or cookie");
-    return;
+    return downloadUrlAndCookie;
+  } catch (error) {
+    throw error;
+  } finally {
+    await context.close();
   }
-
-  const { downloadUrl, cookie } = downloadUrlAndCookie;
-
-  emit.message("Success: " + downloadUrl);
-
-  await context.close();
-
-  // Download files
-  emit.message("Downloading ZIP (It could take a while, please be patient...)");
-
-  const zipFilePath = await downloader.downloadZip(downloadUrl, { cookie });
-
-  if (!zipFilePath) {
-    emit.error("Failed to download ZIP");
-    return;
-  }
-
-  emit.message("Downloading completed!");
-
-  // Process files
-  emit.message("Parsing data and creating CSV files...");
-
-  await parser.processZipArchive(zipFilePath);
-
-  emit.message("Moody's history files successfully processed. Deleting ZIP...");
-
-  // Remove XML files from temp dir
-  await fs.rm(zipFilePath, { recursive: true, force: true });
-
-  emit.message("ZIP successfully deleted!");
-  emit.done("Completed!");
 };
 
 export { getMoodysRatings };

@@ -1,68 +1,57 @@
-import { ChildProcess, fork } from "child_process";
 import { Message, Events } from "../types";
-import { emitter } from ".";
+import Parser from "../services/parser";
+import { emitter, tasker } from ".";
 import fs from "fs/promises";
-import path from "path";
+
+const emit = {
+  message: (message: string) => {
+    emitter.emit(Events.UPLOAD_UPDATE, {
+      message,
+      type: "message",
+    });
+  },
+  error: (message: string) => {
+    emitter.emit(Events.UPLOAD_UPDATE, {
+      message,
+      type: "error",
+    });
+  },
+  done: (message: string) => {
+    emitter.emit(Events.UPLOAD_UPDATE, {
+      message,
+      type: "exit",
+    });
+  },
+};
 
 class Uploader {
-  process: ChildProcess | null;
   messages: Message[];
   zipFilePath: string | null;
 
   constructor() {
-    this.process = null;
     this.messages = [];
     this.zipFilePath = null;
   }
 
   public async initiate(filePath: string): Promise<void> {
-    if (this.process) {
-      throw new Error(
-        "One operation is already in progress. You cannot start more than one upload concurrently"
-      );
-    }
+    const parser = new Parser();
 
-    const childPath = path.join(__dirname, "../processes", "upload");
-
-    const child = fork(childPath);
-
-    this.process = child;
-
-    child.send({ event: "file", data: filePath });
-
-    child.on("message", (msg: any) => {
-      console.log(msg);
-      const { event, data } = msg;
-      if (event !== Events.UPLOAD_MESSAGE) {
-        return;
+    const task = async () => {
+      try {
+        emit.message("Process started");
+        await parser.processZipArchive(filePath);
+        emit.done("Completed!");
+      } catch (error) {
+        const err = error as any;
+        emit.error(err.message ?? err);
+      } finally {
+        this.cleanup();
       }
+    };
 
-      emitter.emit(event, data);
-    });
+    emit.message("Queued...");
 
-    child.on("complete", () => {
-      emitter.emit(Events.UPLOAD_UPDATE, {
-        type: "exit",
-        message: "Done!",
-      });
-    });
-
-    child.on("error", (err: any) => {
-      console.error(err.message ?? err);
-
-      emitter.emit(Events.UPLOAD_UPDATE, {
-        type: "error",
-        message: err.message ?? err,
-      });
-    });
-
-    child.on("exit", async (code, signal) => {
-      await this.cleanup();
-
-      console.log(
-        `Child process for manual upload exited with code ${code} and signal ${signal}`
-      );
-    });
+    tasker.addTask("upload", task);
   }
 
   appendMessage(message: Message) {
@@ -70,11 +59,6 @@ class Uploader {
   }
 
   private async cleanup() {
-    if (!this.process) {
-      return;
-    }
-
-    this.process = null;
     this.messages = [];
 
     if (!this.zipFilePath) {
@@ -86,11 +70,8 @@ class Uploader {
   }
 
   public async abort(): Promise<void> {
-    if (!this.process) {
-      throw new Error("No ongoing operation to abort");
-    }
-
-    this.process.send({ event: "abort" });
+    tasker.cancelTask("upload");
+    emit.done("Cancelled by user");
   }
 
   public getMessages() {

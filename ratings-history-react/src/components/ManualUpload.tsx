@@ -36,6 +36,7 @@ const ManualUpload = () => {
   const isLoading = hasMessages ? messages[0].type === "message" : false;
   const isFailed = hasMessages ? messages[0].type === "error" : false;
   const isDone = hasMessages ? messages[0].type === "exit" : false;
+  const isQueued = hasMessages ? messages[0].message === "Queued..." : false;
 
   const lastMessageClassName = hasMessages
     ? getMessageColorClass(messages[0])
@@ -178,6 +179,7 @@ const ManualUpload = () => {
             <button
               className="ml-auto flex gap-2 justify-between items-center text-sm bg-red-700/15 text-red-700 px-4 py-2 rounded-full"
               onClick={handleAbort}
+              disabled={!isQueued}
             >
               Abort
               <span className="ic">close</span>
@@ -241,7 +243,7 @@ ${isDragActive ? "bg-blue-700/15 border-blue-700" : "border-black/30"}`}
   };
 
   return (
-    <div className="mt-4 p-4 border border-black/20 rounded-lg">
+    <div className="p-4 border border-black/20 rounded-lg">
       {hasMessages ? <Messages /> : <DragAndDrop />}
 
       {uploadedFiles.map((file) => (

@@ -1,5 +1,4 @@
 import { Page } from "puppeteer";
-import fs from "fs/promises";
 import Parser from "../services/parser";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
@@ -24,23 +23,19 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   };
 
   const getUrl = async (page: Page) => {
-    try {
-      const selector = "#btn-1";
+    const selector = "#btn-1";
 
-      await page.waitForSelector(selector, {
-        timeout: 0,
-        visible: true,
-      });
+    await page.waitForSelector(selector, {
+      timeout: 0,
+      visible: true,
+    });
 
-      const downloadUrl = await page.$eval(
-        selector,
-        (el) => (el as HTMLAnchorElement).href
-      );
+    const downloadUrl = await page.$eval(
+      selector,
+      (el) => (el as HTMLAnchorElement).href
+    );
 
-      return downloadUrl;
-    } catch (error) {
-      return undefined;
-    }
+    return downloadUrl;
   };
 
   const browser = await downloader.getBrowser();
@@ -72,37 +67,9 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
 
   const downloadUrl = await getUrl(page);
 
-  if (!downloadUrl) {
-    emit.error("No link found on page!");
-    return;
-  }
-
-  emit.message("Success: " + downloadUrl);
-
   await context.close();
 
-  emit.message("Downloading ZIP (It could take a while, please be patient...)");
-
-  const zipFilePath = await downloader.downloadZip(downloadUrl);
-
-  if (!zipFilePath) {
-    emit.error("Failed to download ZIP");
-    return;
-  }
-
-  emit.message("Downloading completed!");
-  emit.message("Parsing data and creating CSV files...");
-
-  await parser.processZipArchive(zipFilePath);
-
-  emit.message(
-    "Fitch Ratings history files successfully processed. Deleting ZIP..."
-  );
-
-  await fs.rm(zipFilePath, { recursive: true, force: true });
-
-  emit.message("Fitch Ratings XML files successfully deleted!");
-  emit.done("Completed!");
+  return { urls: [downloadUrl] };
 };
 
 export { getFitchRatingsHistory };

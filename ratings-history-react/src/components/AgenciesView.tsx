@@ -58,6 +58,11 @@ const AgenciesView: React.FC = () => {
           <AgencyComponent key={agency.name} agency={agency} />
         ))}
       </div>
+      <div className="p-4 text-xs text-gray-500">
+        If you believe the process stalls, you may want to restart the backend
+        by clicking the <span className="text-blue-700">restart server</span>{" "}
+        button at the bottom of the side bar
+      </div>
       <ManualUpload />
     </div>
   );

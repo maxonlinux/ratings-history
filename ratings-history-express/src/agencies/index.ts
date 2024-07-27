@@ -1,5 +1,6 @@
 import { emitter } from "../services";
 import { AgenciesMap, Events } from "../types";
+import { getAmbestRatingsHistory } from "./ambestRatings";
 import { getDemotechRatingsHistory } from "./demotechRatings";
 import { getEganJonesHistory } from "./eganJones";
 import { getFitchRatingsHistory } from "./fitchRatings";
@@ -9,6 +10,7 @@ import { getMoodysRatings } from "./moodysRatings";
 import { getMorningStarHistory } from "./morningStar";
 
 const agenciesFunctionsMap: AgenciesMap = {
+  // "ambest-ratings": getAmbestRatingsHistory,
   "fitch-ratings": getFitchRatingsHistory,
   "egan-jones": getEganJonesHistory,
   "demotech-ratings": getDemotechRatingsHistory,

@@ -17,7 +17,6 @@ const config = {
   rootDirPath,
   outDirPath: process.env.OUT_DIR_PATH,
   tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
-  metadataFilePath: path.resolve(rootDirPath, "metadata.json"),
   chromeExec: "browsers/Thorium.app/Contents/MacOS/Thorium",
   credentials: {
     "kroll-bond-ratings": [

@@ -2,11 +2,18 @@ export interface InstrumentData {
   [key: string]: string | undefined;
 }
 
-export type CustomHeaders = {
+export interface CustomHeaders {
   [key: string]: string;
-};
+}
 
-export type AgencyFunction = (emitter: MessageEmitter) => Promise<unknown>;
+export interface AgencyFunctionData {
+  urls: string[];
+  headers?: CustomHeaders;
+}
+
+export type AgencyFunction = (
+  emitter: MessageEmitter
+) => Promise<AgencyFunctionData>;
 
 export interface AgenciesMap {
   [key: string]: AgencyFunction;

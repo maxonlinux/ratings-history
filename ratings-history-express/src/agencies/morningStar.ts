@@ -286,35 +286,7 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
 
   const downloadUrl = await downloadUrlPromise;
 
-  if (!downloadUrl) {
-    emit.error("Failed to get download URL");
-    return;
-  }
-
-  emit.message("Downloading ZIP (It could take a while, please be patient...)");
-
-  const zipFilePath = await downloader.downloadZip(downloadUrl);
-
-  if (!zipFilePath) {
-    emit.error("Failed to download ZIP");
-    return;
-  }
-
-  emit.message("Downloading completed!");
-
-  // Process files
-  emit.message("Parsing data and creating CSV files...");
-  await parser.processZipArchive(zipFilePath);
-
-  emit.message(
-    "Morning Star history files successfully processed. Deleting ZIP..."
-  );
-
-  await fs.rm(zipFilePath);
-
-  emit.message("ZIP successfully deleted!");
-
-  emit.done("Completed!");
+  return { urls: [downloadUrl] };
 };
 
 export { getMorningStarHistory };
