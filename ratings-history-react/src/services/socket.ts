@@ -5,8 +5,8 @@ import { emitter } from "./emitter";
 class WebSocketService {
   private url: string;
   private ws: null | WebSocket;
-  private listeners: Map<string, Function[]>;
-  private messageQueue: Array<{ action: string; data: any }>;
+  private listeners: Map<string, CallableFunction[]>;
+  private messageQueue: Array<{ action: string; data: unknown }>;
   private subscribedEvents: Set<string>;
 
   constructor(url: string) {
@@ -65,7 +65,7 @@ class WebSocketService {
     this.ws?.close(1000, "Client initiated close"); // 1000 indicates normal closure
   }
 
-  subscribe(event: string, callback: Function) {
+  subscribe(event: string, callback: CallableFunction) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }

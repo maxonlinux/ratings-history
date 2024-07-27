@@ -1,13 +1,13 @@
 import { Request, Response, Router } from "express";
 import path from "path";
-import upload from "../middlewares/upload";
+import uploadMiddleware from "../middlewares/uploadMiddleware";
 import { uploader } from "../services";
 
 const router = Router();
 
 router.post(
   "/upload",
-  upload.array("files"),
+  uploadMiddleware.array("files"),
   async (req: Request, res: Response) => {
     const filesArray = req.files as Express.Multer.File[];
 

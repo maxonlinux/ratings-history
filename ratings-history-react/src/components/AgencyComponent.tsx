@@ -62,7 +62,9 @@ const AgencyComponent: React.FC<{
           disabled={!isQueued}
           className="ic ml-auto size-10 bg-red-700/15 text-red-700 flex-shrink-0 rounded-full disabled:opacity-50"
           onClick={() => {
-            axios.post(config.apiUrl + "/agencies/abort/" + agency.name);
+            axios.post(config.apiUrl + "/agencies/abort/" + agency.name, null, {
+              withCredentials: true,
+            });
           }}
         >
           close
@@ -77,7 +79,9 @@ const AgencyComponent: React.FC<{
           onClick={async () => {
             try {
               const res = await axios.post(
-                config.apiUrl + "/agencies/download/" + agency.name
+                config.apiUrl + "/agencies/download/" + agency.name,
+                null,
+                { withCredentials: true }
               );
 
               console.log(res.data);

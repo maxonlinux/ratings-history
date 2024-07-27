@@ -7,13 +7,21 @@ import { exists } from "./utils/general";
 import config from "./config";
 import router from "./routes";
 import { socket } from "./services";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const app = express();
 const port = process.env.PORT;
 
-app.use(cors());
+const options = {
+  origin: config.allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+};
+
+app.use(cors(options));
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/public", express.static(config.outDirPath));

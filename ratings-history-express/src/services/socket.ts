@@ -2,6 +2,9 @@ import WebSocket, { WebSocketServer } from "ws";
 import { Server } from "http";
 import { downloader, monitor, uploader } from ".";
 import { Events } from "../types";
+import jwt, { JsonWebTokenError, JwtPayload } from "jsonwebtoken";
+import config from "../config";
+import internal from "stream";
 
 class Socket {
   private wss: WebSocketServer;
@@ -29,7 +32,7 @@ class Socket {
             console.log(`Client subscribed to ${Events.AGENCIES_UPDATE}`);
             const agencies = downloader.getAgencies();
 
-            this.broadcast({
+            this.send(ws, {
               event: Events.AGENCIES_UPDATE,
               data: agencies,
             });
@@ -39,7 +42,7 @@ class Socket {
             console.log(`Client subscribed to ${Events.UPLOAD_UPDATE}`);
             const messages = uploader.getMessages();
 
-            this.broadcast({
+            this.send(ws, {
               event: Events.UPLOAD_UPDATE,
               data: messages,
             });
@@ -49,7 +52,7 @@ class Socket {
             console.log(`Client subscribed to ${Events.SYSTEM_INFO}`);
             const info = monitor.getSysInfo();
 
-            this.broadcast({
+            this.send(ws, {
               event: Events.SYSTEM_INFO,
               data: info,
             });
@@ -65,6 +68,7 @@ class Socket {
       });
 
       ws.on("close", () => {
+        this.cleanupSubscriptions(ws);
         this.clients.delete(ws);
       });
 
@@ -72,6 +76,34 @@ class Socket {
         console.error(`WebSocket error: ${error}`);
       });
     });
+  }
+
+  private cleanupSubscriptions(ws: WebSocket) {
+    const subscriptions = this.clients.get(ws);
+    if (subscriptions) {
+      for (const event of subscriptions) {
+        const subscriptions = this.clients.get(ws);
+
+        subscriptions?.forEach((event) => {
+          this.broadcast({
+            event: "unsubscribe",
+            data: event,
+          });
+        });
+        console.log(`Client unsubscribed from ${event} (disconnected)`);
+      }
+    }
+  }
+
+  private getCookieValue(cookieHeader: string, cookieName: string) {
+    const cookies = cookieHeader.split(";").map((cookie) => cookie.trim());
+    for (const cookie of cookies) {
+      const [name, value] = cookie.split("=");
+      if (name === cookieName) {
+        return value;
+      }
+    }
+    return null;
   }
 
   private parseMessage = (message: Buffer) => {
@@ -91,7 +123,41 @@ class Socket {
   };
 
   public start(server: Server) {
+    const destroy = (socket: internal.Duplex) => {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      socket.end();
+      socket.destroy();
+    };
+
     server.on("upgrade", (req, socket, head) => {
+      const cookies = req.headers.cookie;
+
+      if (!cookies) {
+        destroy(socket);
+        return;
+      }
+
+      const token = this.getCookieValue(cookies, "authToken");
+
+      if (!token) {
+        destroy(socket);
+        return;
+      }
+
+      try {
+        jwt.verify(token, config.secret) as JwtPayload;
+      } catch (error) {
+        const err = error as JsonWebTokenError;
+        if (err.name === "TokenExpiredError") {
+          destroy(socket);
+          return;
+        }
+
+        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+        socket.end();
+        socket.destroy();
+      }
+
       this.wss.handleUpgrade(req, socket, head, (ws) => {
         this.wss.emit("connection", ws, req);
       });

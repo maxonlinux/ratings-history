@@ -114,6 +114,7 @@ const ManualUpload = () => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          withCredentials: true,
         }
       );
 
@@ -127,7 +128,9 @@ const ManualUpload = () => {
 
   const handleAbort = async () => {
     try {
-      const response = await axios.post(config.apiUrl + "/manual/abort");
+      const response = await axios.post(config.apiUrl + "/manual/abort", null, {
+        withCredentials: true,
+      });
 
       console.log(response.data);
       removeItem();

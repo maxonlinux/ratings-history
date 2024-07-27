@@ -47,7 +47,9 @@ const FileComponent: React.FC<{
     }
 
     try {
-      const res = await axios.delete(config.apiUrl + "/files/" + file.name);
+      const res = await axios.delete(config.apiUrl + "/files/" + file.name, {
+        withCredentials: true,
+      });
       emitter.dispatch(Events.FILE_DELETE, file.name);
       console.log(res.data);
     } catch (error) {
@@ -65,9 +67,13 @@ const FileComponent: React.FC<{
 
     if (editedName !== file.name) {
       try {
-        const res = await axios.put(config.apiUrl + "/files/" + file.name, {
-          newName: editedName,
-        });
+        const res = await axios.put(
+          config.apiUrl + "/files/" + file.name,
+          {
+            newName: editedName,
+          },
+          { withCredentials: true }
+        );
         emitter.dispatch(Events.FILE_EDIT, {
           currentFileName: file.name,
           newFileName: editedName,

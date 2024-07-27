@@ -1,4 +1,3 @@
-/* eslint-disable import/no-cycle */
 import EventEmitter from "events";
 import Socket from "./socket";
 import Downloader from "./downloader";

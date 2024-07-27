@@ -13,11 +13,25 @@ if (!process.env.TEMP_DIR_NAME) {
   throw new Error("No temp directory name in .env");
 }
 
+if (!process.env.SECRET) {
+  throw new Error("No secret in .env");
+}
+
+if (!process.env.ORIGIN) {
+  throw new Error("No origin (admin panel domain) in .env");
+}
+
 const config = {
   rootDirPath,
   outDirPath: process.env.OUT_DIR_PATH,
   tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
   chromeExec: "browsers/Thorium.app/Contents/MacOS/Thorium",
+  secret: process.env.SECRET,
+  allowedOrigins: [process.env.ORIGIN],
+  adminCredentials: {
+    login: process.env.ADMIN_PASSWORD,
+    password: process.env.ADMIN_PASSWORD,
+  },
   credentials: {
     "kroll-bond-ratings": [
       process.env.KROLL_BOND_LOGIN,

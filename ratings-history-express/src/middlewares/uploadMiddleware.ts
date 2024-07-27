@@ -12,7 +12,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({
+const uploadMiddleware = multer({
   storage,
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === "application/zip") {
@@ -23,4 +23,4 @@ const upload = multer({
   },
 });
 
-export default upload;
+export default uploadMiddleware;
