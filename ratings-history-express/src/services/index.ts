@@ -1,7 +1,8 @@
+/* eslint-disable import/no-cycle */
+import EventEmitter from "events";
 import Socket from "./socket";
 import Downloader from "./downloader";
 import Uploader from "./uploader";
-import EventEmitter from "events";
 import { Events, Message } from "../types";
 import Takser from "./tasker";
 import Monitor from "./monitor";

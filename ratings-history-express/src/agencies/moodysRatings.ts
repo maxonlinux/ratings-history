@@ -1,5 +1,5 @@
 import { Browser, Page, Target } from "puppeteer";
-import { config } from "../config";
+import config from "../config";
 import { downloader } from "../services";
 import { AgencyFunctionData, MessageEmitter } from "../types";
 
@@ -87,9 +87,11 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
 
     emit.message("Download page loaded");
 
-    const newPagePromise = new Promise<Target>((resolve) =>
-      browser.once("targetcreated", resolve)
-    );
+    const newPagePromise = new Promise<Target>((resolve) => {
+      browser.once("targetcreated", (target) => {
+        resolve(target);
+      });
+    });
 
     await page.waitForSelector(downloadButtonSelector, {
       timeout: 0,
@@ -130,7 +132,7 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
 
               resolve({
                 urls: [url],
-                headers: { cookie: headers["cookie"] },
+                headers: { cookie: headers.cookie },
               });
 
               return;
@@ -144,7 +146,9 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
       }
     );
 
-    return await downloadUrlAndCookiePromise;
+    const result = await downloadUrlAndCookiePromise;
+
+    return result;
   };
 
   const browser = await downloader.getBrowser();
@@ -159,11 +163,9 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
     const downloadUrlAndCookie = await getDownloadUrlAndCookie(page, browser);
 
     return downloadUrlAndCookie;
-  } catch (error) {
-    throw error;
   } finally {
     await context.close();
   }
 };
 
-export { getMoodysRatings };
+export default getMoodysRatings;

@@ -1,11 +1,8 @@
 import { Page } from "puppeteer";
-import Parser from "../services/parser";
-import fs from "fs/promises";
-import { config } from "../config";
+import config from "../config";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
 
-const parser = new Parser();
 const credentials = config.credentials["morning-star"];
 
 const getMorningStarHistory = async (emit: MessageEmitter) => {
@@ -134,29 +131,33 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   const waitForCaptcha = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: any) => void;
+      reject: (reason?: never) => void;
     } = {
       resolve: () => {},
       reject: () => {},
     };
 
-    const promise = new Promise<void>(async (resolve, reject) => {
+    const promise = new Promise<void>((resolve, reject) => {
       controller.resolve = resolve;
       controller.reject = reject;
 
       const captchaSelector = "#ngrecaptcha-0";
 
-      try {
-        await page.waitForSelector(captchaSelector, {
-          timeout: 0,
-        });
+      (async () => {
+        try {
+          await page.waitForSelector(captchaSelector, {
+            timeout: 0,
+          });
 
-        reject(
-          "Captcha detected! Please use the manual upload method or retry in a few minutes"
-        );
-      } catch (error) {
-        // reject(error);
-      }
+          reject(
+            new Error(
+              "Captcha detected! Please use the manual upload method or retry in a few minutes"
+            )
+          );
+        } catch (_error) {
+          // reject(error);
+        }
+      })();
     });
 
     return { promise, ...controller };
@@ -165,31 +166,33 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   const agreeWithPrivacyNotice = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: any) => void;
+      reject: (reason?: never) => void;
     } = {
       resolve: () => {},
       reject: () => {},
     };
 
-    const promise = new Promise<void>(async (resolve, reject) => {
+    const promise = new Promise<void>((resolve, reject) => {
       controller.resolve = resolve;
       controller.reject = reject;
 
       const okButtonSelector =
         "#mat-dialog-0 > app-gdpr-message > div > div.login-right > button";
 
-      try {
-        await page.waitForSelector(okButtonSelector, {
-          visible: true,
-          timeout: 0,
-        });
+      (async () => {
+        try {
+          await page.waitForSelector(okButtonSelector, {
+            visible: true,
+            timeout: 0,
+          });
 
-        await page.click(okButtonSelector);
+          await page.click(okButtonSelector);
 
-        emit.message("Agreed with Privacy Notice");
-      } catch (error) {
-        // reject(error);
-      }
+          emit.message("Agreed with Privacy Notice");
+        } catch (_error) {
+          // reject(error);
+        }
+      })();
     });
 
     return { promise, ...controller };
@@ -198,28 +201,29 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   const browse = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: any) => void;
+      reject: (reason?: never) => void;
     } = {
       resolve: () => {},
       reject: () => {},
     };
 
-    const promise = new Promise<void>(async (resolve, reject) => {
+    const promise = new Promise<void>((resolve, reject) => {
       controller.resolve = resolve;
       controller.reject = reject;
-
-      try {
-        await loadPage(page);
-        await goToLoginPage(page);
-        await enterCredentials(page);
-        await submitCredentials(page);
-        await goToDownloadPage(page);
-        await agreeWithTerms(page);
-        await getDownloadUrl(page);
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
+      (async () => {
+        try {
+          await loadPage(page);
+          await goToLoginPage(page);
+          await enterCredentials(page);
+          await submitCredentials(page);
+          await goToDownloadPage(page);
+          await agreeWithTerms(page);
+          await getDownloadUrl(page);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      })();
     });
 
     return { promise, ...controller };
@@ -274,8 +278,6 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
       captchaPromise.promise,
       privacyNoticePromise.promise,
     ]);
-  } catch (error) {
-    throw error;
   } finally {
     browsePromise.resolve();
     captchaPromise.resolve();
@@ -289,4 +291,4 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   return { urls: [downloadUrl] };
 };
 
-export { getMorningStarHistory };
+export default getMorningStarHistory;

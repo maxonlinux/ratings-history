@@ -15,7 +15,9 @@ const AgenciesView: React.FC = () => {
   }));
 
   useEffect(() => {
-    const handleAgenciesUpdate = (data: any) => {
+    const handleAgenciesUpdate = (data: {
+      [key: string]: { messages: Message[] };
+    }) => {
       setAgencies((prev) => {
         const updatedAgencies = { ...prev };
 
@@ -24,7 +26,7 @@ const AgenciesView: React.FC = () => {
         }
 
         for (const agencyName in data) {
-          if (!data.hasOwnProperty(agencyName)) {
+          if (!Object.prototype.hasOwnProperty.call(data, agencyName)) {
             continue;
           }
 

@@ -23,6 +23,15 @@ class Tasker {
     }
   }
 
+  private async handleTask(id: string, task: Task) {
+    try {
+      await task();
+    } finally {
+      this.runningTasks.delete(id);
+      this.processQueue();
+    }
+  }
+
   private async processQueue() {
     while (
       this.taskQueue.size &&
@@ -33,14 +42,7 @@ class Tasker {
       this.taskQueue.delete(id);
       this.runningTasks.add(id);
 
-      try {
-        await task();
-      } catch (error) {
-        throw error;
-      } finally {
-        this.runningTasks.delete(id);
-        this.processQueue();
-      }
+      this.handleTask(id, task);
     }
   }
 

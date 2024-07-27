@@ -4,21 +4,20 @@ import { FileMetadata } from "../types";
 
 const router = Router();
 
-router.get("/", async (req: Request, res: Response) => {
+function compareMetadata(a: FileMetadata, b: FileMetadata) {
+  const dateA = a.name.split(" ")[0];
+  const dateB = b.name.split(" ")[0];
+
+  // Compare dates first (latest date first)
+  if (dateA > dateB) return -1;
+  if (dateA < dateB) return 1;
+
+  return a.name.localeCompare(b.name);
+}
+
+router.get("/", async (_req: Request, res: Response) => {
   try {
     const metadata = await filer.get();
-
-    function compareMetadata(a: FileMetadata, b: FileMetadata) {
-      const dateA = a.name.split(" ")[0];
-      const dateB = b.name.split(" ")[0];
-
-      // Compare dates first (latest date first)
-      if (dateA > dateB) return -1;
-      if (dateA < dateB) return 1;
-
-      return a.name.localeCompare(b.name);
-    }
-
     const sortedMetadata = metadata.sort(compareMetadata);
 
     res.json({ message: sortedMetadata });
@@ -34,7 +33,8 @@ router.get("/:filename", async (req: Request, res: Response) => {
     const metadata = await filer.get(filename);
 
     if (!metadata) {
-      return res.status(404).json({ error: "File not found" });
+      res.status(404).json({ error: "File not found" });
+      return;
     }
 
     res.json({ message: metadata });
@@ -51,7 +51,8 @@ router.put("/:filename", async (req: Request, res: Response) => {
     const renamedFile = await filer.rename(filename, newName);
 
     if (!renamedFile) {
-      return res.status(404).send("File not found");
+      res.status(404).send("File not found");
+      return;
     }
 
     res.json({
@@ -69,7 +70,8 @@ router.delete("/:filename", async (req: Request, res: Response) => {
     const deletedFile = await filer.delete(filename);
 
     if (!deletedFile) {
-      return res.status(404).json({ error: "File not found" });
+      res.status(404).json({ error: "File not found" });
+      return;
     }
 
     res.json({ message: `File ${filename} deleted successfully` });

@@ -1,6 +1,6 @@
 {
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules, legacy"],
+  "include": ["src/**/*.ts", "eslint.config.mjs"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

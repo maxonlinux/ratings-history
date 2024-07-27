@@ -1,12 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-import { exists } from "./utils/general";
-import { config } from "./config";
-import router from "./routes";
-import { socket } from "./services";
 import cors from "cors";
 import fs from "fs/promises";
 import path from "path";
+import { exists } from "./utils/general";
+import config from "./config";
+import router from "./routes";
+import { socket } from "./services";
 
 dotenv.config();
 const app = express();

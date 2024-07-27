@@ -1,12 +1,12 @@
 import multer from "multer";
 import path from "path";
-import { config } from "../config";
+import config from "../config";
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, config.tempDirPath);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `${performance.now()}${ext}`);
   },
@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     if (file.mimetype === "application/zip") {
       cb(null, true);
     } else {
@@ -23,4 +23,4 @@ const upload = multer({
   },
 });
 
-export { upload };
+export default upload;

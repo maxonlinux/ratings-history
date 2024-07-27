@@ -1,17 +1,16 @@
 import path from "path";
 import fs from "fs/promises";
-import { config } from "../config";
-import { InstrumentData } from "../types";
 import { decode } from "entities";
 import { Entry, ZipFile } from "yauzl";
+import config from "../config";
+import { InstrumentData } from "../types";
 import { openReadStream, openZip } from "../utils/archive";
 
-const escapeCsvValue = (value: string | undefined) => {
-  return typeof value === "string" &&
-    (value.includes(",") || value.includes('"') || value.includes("\n"))
+const escapeCsvValue = (value: string | undefined) =>
+  typeof value === "string" &&
+  (value.includes(",") || value.includes('"') || value.includes("\n"))
     ? `"${value.replace(/"/g, '""')}"`
     : value;
-};
 
 class Parser {
   private readonly xmlTagToCsvColumnMap: { [key: string]: string };
@@ -62,9 +61,9 @@ class Parser {
 
     this.defaultInstrument = {};
 
-    for (const key of this.keySet) {
+    this.keySet.forEach((key) => {
       this.defaultInstrument[key] = undefined;
-    }
+    });
   }
 
   parseXml(xmlString: string): InstrumentData[] {
@@ -75,25 +74,15 @@ class Parser {
     const currentInstrument: InstrumentData = { ...this.defaultInstrument };
 
     const matches = xmlString.matchAll(valueRegex);
-    // let lastMatch: (string | undefined)[] = [];
 
     for (const match of matches) {
       const [, key, cdata, text, closingTag] = match;
-      // const [, , , , lastClosingTag] = lastMatch;
 
-      // lastMatch = [, , , , closingTag];
-
-      // Should append if the closing tag is ORD or INRD (means the end of instrument or obligor so it should be added)
-      const shouldAppendResults = this.endTagSet.has(closingTag);
-
-      // If it is a closing tag (means parent tag) and if no closing tag was right before (to avoid pushing duplicates)
-      // closingTag && !lastClosingTag
-      if (shouldAppendResults) {
+      if (this.endTagSet.has(closingTag)) {
         result.add({ ...currentInstrument });
         continue;
       }
 
-      // If this tag exists in columns map (means we need this data)
       if (this.keySet.has(key)) {
         const value = cdata || text || "";
         currentInstrument[key] = decode(value);
@@ -109,21 +98,27 @@ class Parser {
 
       await fs.writeFile(outputFilePath, columnHeaders, "utf8");
     } catch (error) {
-      const err = error as any;
-      throw new Error("Error creating CSV file: " + err.message ?? err);
+      throw new Error(
+        `Error creating CSV file: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
-  async appendCsvFile(outputFilePath: string, data: InstrumentData[]) {
+  private async appendCsvFile(outputFilePath: string, data: InstrumentData[]) {
     try {
       const csvData = data
-        .map((row) => "\n" + Object.values(row).map(escapeCsvValue).join(","))
+        .map((row) => `\n${Object.values(row).map(escapeCsvValue).join(",")}`)
         .join("");
 
       await fs.appendFile(outputFilePath, csvData, "utf8");
     } catch (error) {
-      const err = error as any;
-      throw new Error("Error writing to CSV file: " + err.message ?? err);
+      throw new Error(
+        `Error writing to CSV file: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
@@ -143,13 +138,11 @@ class Parser {
       `${csvFileName}.csv`
     );
 
-    // Create new file and add its name in set
     if (!csvFileNameSet.has(csvFileName)) {
       csvFileNameSet.add(csvFileName);
       await this.createCsvFile(outputFilePath);
     }
 
-    // Append existing file or the new file that was just created
     await this.appendCsvFile(outputFilePath, parsedData);
   }
 
@@ -160,19 +153,15 @@ class Parser {
         lazyEntries: true,
       });
 
-      // Function to wait for zipFile to finish processing
       const zipFilePromise = new Promise<void>((resolve, reject) => {
         zipFile.on("error", reject);
         zipFile.on("end", resolve);
       });
 
-      // Start reading entries from the zip file
       zipFile.readEntry();
 
       const handleEntry = async (entry: Entry) => {
-        // Directory file names end with '/' (if directory or non-xml file)
         if (/\/$|^(?!.*\.xml$).*$/.test(entry.fileName)) {
-          // Move to next entry
           zipFile.readEntry();
           return;
         }
@@ -180,40 +169,34 @@ class Parser {
         try {
           console.log("Processing", entry.fileName);
 
-          // Open read stream for the current entry
           const data = await openReadStream(zipFile, entry);
 
-          // Process data from entry
           await this.processXmlData(data, csvFileNameSet);
-        } catch (error) {
-          const err = error as any;
-          console.error(`Error while processing ${entry.fileName}:`, err);
+        } finally {
+          zipFile.readEntry();
         }
-
-        // Move to next entry
-        zipFile.readEntry();
       };
 
-      // Handle each entry in the zip file
       zipFile.on("entry", handleEntry);
 
-      // Wait for zipFile to finish processing all entries
       await zipFilePromise;
       console.log("All files processed.");
 
-      // Close the zipFile
       zipFile.close();
 
-      // Move all CSV files from temporary to output directory
-      for (const file of csvFileNameSet) {
-        const oldPath = path.resolve(config.tempDirPath, "csv", file + ".csv");
-        const newPath = path.resolve(config.outDirPath, file + ".csv");
-
+      const renamePromises = Array.from(csvFileNameSet).map(async (file) => {
+        const oldPath = path.resolve(config.tempDirPath, "csv", `${file}.csv`);
+        const newPath = path.resolve(config.outDirPath, `${file}.csv`);
         await fs.rename(oldPath, newPath);
-      }
+      });
+
+      await Promise.all(renamePromises);
     } catch (error) {
-      const err = error as any;
-      throw new Error("Error processing zip file: " + err.message ?? err);
+      throw new Error(
+        `Error processing ZIP file: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 }

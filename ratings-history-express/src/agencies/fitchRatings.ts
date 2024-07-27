@@ -1,25 +1,17 @@
 import { Page } from "puppeteer";
-import Parser from "../services/parser";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
-
-const parser = new Parser();
 
 const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   emit.message("Getting Fitch Ratings history files...");
 
   const loadPage = async (page: Page) => {
-    try {
-      const url = `https://www.fitchratings.com/ratings-history-disclosure`;
+    const url = `https://www.fitchratings.com/ratings-history-disclosure`;
 
-      await page.goto(url, {
-        waitUntil: "load",
-        timeout: 0,
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
+    await page.goto(url, {
+      waitUntil: "load",
+      timeout: 0,
+    });
   };
 
   const getUrl = async (page: Page) => {
@@ -72,4 +64,4 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   return { urls: [downloadUrl] };
 };
 
-export { getFitchRatingsHistory };
+export default getFitchRatingsHistory;

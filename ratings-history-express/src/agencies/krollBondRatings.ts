@@ -1,5 +1,5 @@
 import { Browser, Page, Target, TimeoutError } from "puppeteer";
-import { config } from "../config";
+import config from "../config";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
 
@@ -104,9 +104,11 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
 
     emit.message("Navigated to download page");
 
-    const newPagePromise = new Promise<Target>((resolve) =>
-      browser.once("targetcreated", resolve)
-    );
+    const newPagePromise = new Promise<Target>((resolve) => {
+      browser.once("targetcreated", (target) => {
+        resolve(target);
+      });
+    });
 
     await page.click(linkSelector);
     emit.message("Link clicked");
@@ -148,7 +150,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
         }
 
         request.continue();
-        return;
       });
     });
 
@@ -169,28 +170,30 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
   const acceptCookies = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: any) => void;
+      reject: (reason?: never) => void;
     } = {
       resolve: () => {},
       reject: () => {},
     };
 
-    const promise = new Promise<void>(async (resolve, reject) => {
+    const promise = new Promise<void>((resolve) => {
       const acceptButtonSelector = "#onetrust-accept-btn-handler";
 
-      try {
-        await page.waitForSelector(acceptButtonSelector, {
-          visible: true,
-          timeout: 0,
-        });
+      (async () => {
+        try {
+          await page.waitForSelector(acceptButtonSelector, {
+            visible: true,
+            timeout: 0,
+          });
 
-        await page.click(acceptButtonSelector);
+          await page.click(acceptButtonSelector);
 
-        emit.message("Cookies accepted");
-        resolve();
-      } catch (error) {
-        // reject(error);
-      }
+          emit.message("Cookies accepted");
+          resolve();
+        } catch (_error) {
+          // reject(error);
+        }
+      })();
     });
 
     return { promise, ...controller };
@@ -199,27 +202,29 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
   const browse = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: any) => void;
+      reject: (reason?: never) => void;
     } = {
       resolve: () => {},
       reject: () => {},
     };
 
-    const promise = new Promise<void>(async (resolve, reject) => {
-      try {
-        await loadPage(page);
-        emit.message("Page loaded");
-        await goToLoginPage(page);
-        emit.message("Redirected to login page");
-        await enterCredentials(page);
-        emit.message("Credentials entered");
-        await submitCredentials(page);
-        emit.message("Credentials submitted");
+    const promise = new Promise<void>((resolve, reject) => {
+      (async () => {
+        try {
+          await loadPage(page);
+          emit.message("Page loaded");
+          await goToLoginPage(page);
+          emit.message("Redirected to login page");
+          await enterCredentials(page);
+          emit.message("Credentials entered");
+          await submitCredentials(page);
+          emit.message("Credentials submitted");
 
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      })();
     });
 
     return { promise, ...controller };
@@ -266,8 +271,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     );
 
     return { urls: downloadUrls };
-  } catch (error) {
-    throw error;
   } finally {
     browsePromise.resolve();
     acceptCookiesPromise.resolve();
@@ -276,4 +279,4 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
   }
 };
 
-export { getKrollBondRatingsHistory };
+export default getKrollBondRatingsHistory;

@@ -1,12 +1,12 @@
-import { agenciesFunctionsMap, createEmitter } from "../agencies";
 import path from "path";
 import { createWriteStream } from "fs";
-import { CustomHeaders, Events, Message, Task } from "../types";
 import puppeteer, { Browser } from "puppeteer";
-import { config } from "../config";
 import axios from "axios";
-import { emitter, tasker } from ".";
 import fs from "fs/promises";
+import { CustomHeaders, Events, Message, Task } from "../types";
+import config from "../config";
+import { emitter, tasker } from ".";
+import { agenciesFunctionsMap, createEmitter } from "../agencies";
 import Parser from "./parser";
 
 interface Agency {
@@ -25,9 +25,9 @@ class Downloader {
   }
 
   private initAgencies() {
-    for (const key in agenciesFunctionsMap) {
+    Object.keys(agenciesFunctionsMap).forEach((key) => {
       this.agencies.set(key, { messages: [] });
-    }
+    });
   }
 
   public async getBrowser() {
@@ -78,8 +78,8 @@ class Downloader {
     this.browser = undefined;
   }
 
-  public async downloadZip(url: string, customHeaders?: CustomHeaders) {
-    const zipFileName = performance.now().toString() + ".zip";
+  public static async downloadZip(url: string, customHeaders?: CustomHeaders) {
+    const zipFileName = `${performance.now().toString()}.zip`;
     const zipFilePath = path.resolve(config.tempDirPath, zipFileName);
 
     try {
@@ -92,12 +92,6 @@ class Downloader {
         },
       });
 
-      // const contentType = response.headers["content-type"];
-
-      // if (contentType !== "application/zip") {
-      //   throw new Error("Downloaded file is not ZIP");
-      // }
-
       const ws = createWriteStream(zipFilePath);
       const stream = response.data.pipe(ws);
 
@@ -108,9 +102,11 @@ class Downloader {
 
       return zipFilePath;
     } catch (error) {
-      console.log(error);
-      const err = error as any;
-      throw new Error(err.message ?? err);
+      throw new Error(
+        `Error while dowbloading ZIP: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
@@ -134,12 +130,12 @@ class Downloader {
           "Downloading ZIP (It could take a while, please be patient...)"
         );
 
-        const downloadedFilesPaths: string[] = [];
+        const downloadPromises = urls.map(async (url) => {
+          const zipFilePath = await Downloader.downloadZip(url, headers);
+          return zipFilePath;
+        });
 
-        for (const url of urls) {
-          const zipFilePath = await this.downloadZip(url, headers);
-          downloadedFilesPaths.push(zipFilePath);
-        }
+        const downloadedFilesPaths = await Promise.all(downloadPromises);
 
         messageEmitter.message("Downloading and extraction completed!");
 
@@ -151,22 +147,25 @@ class Downloader {
           "Parsing data and creating CSV files (It could take a while, please be patient...)"
         );
 
-        for (const path of downloadedFilesPaths) {
-          await parser.processZipArchive(path);
-        }
+        const parsePromises = downloadedFilesPaths.map(async (filePath) => {
+          await parser.processZipArchive(filePath);
 
-        messageEmitter.message(
-          "XBRL files successfully processed. Deleting ZIP..."
-        );
+          messageEmitter.message(
+            "XBRL files successfully processed. Deleting ZIP..."
+          );
 
-        for (const path of downloadedFilesPaths) {
-          await fs.rm(path);
-        }
+          await fs.rm(filePath);
+        });
+
+        await Promise.all(parsePromises);
 
         messageEmitter.done("Completed!");
       } catch (error) {
-        const err = error as any;
-        messageEmitter.error(err.message ?? err);
+        if (error instanceof Error) {
+          messageEmitter.error(
+            error instanceof Error ? error.message : String(error)
+          );
+        }
       } finally {
         this.cleanup(agencyName);
       }
@@ -204,7 +203,7 @@ class Downloader {
     const agency = this.agencies.get(agencyName);
 
     if (!agency) {
-      throw new Error("No agency with name " + agencyName);
+      throw new Error(`No agency with name ${agencyName}`);
     }
 
     this.agencies.set(agencyName, { messages: [data, ...agency.messages] });
@@ -214,7 +213,7 @@ class Downloader {
     const agency = this.agencies.get(agencyName);
 
     if (!agency) {
-      throw new Error("No agency with name " + agencyName);
+      throw new Error(`No agency with name ${agencyName}`);
     }
 
     return agency;

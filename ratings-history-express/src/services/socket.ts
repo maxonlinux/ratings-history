@@ -47,11 +47,11 @@ class Socket {
 
           if (data === Events.AGENCIES_UPDATE) {
             console.log(`Client subscribed to ${Events.SYSTEM_INFO}`);
-            const data = monitor.getSysInfo();
+            const info = monitor.getSysInfo();
 
             this.broadcast({
               event: Events.SYSTEM_INFO,
-              data,
+              data: info,
             });
           }
         }
@@ -68,7 +68,7 @@ class Socket {
         this.clients.delete(ws);
       });
 
-      ws.on("error", (error: any) => {
+      ws.on("error", (error) => {
         console.error(`WebSocket error: ${error}`);
       });
     });
@@ -85,7 +85,7 @@ class Socket {
       const parsedMessage = JSON.parse(messageString);
 
       return parsedMessage;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   };
@@ -98,7 +98,7 @@ class Socket {
     });
   }
 
-  public send(client: WebSocket, message: { event: string; data: any }) {
+  public send(client: WebSocket, message: { event: string; data: unknown }) {
     const { event, data } = message;
 
     if (!event || !data) {
@@ -110,7 +110,7 @@ class Socket {
     }
   }
 
-  public broadcast(message: { event: string; data: any }) {
+  public broadcast(message: { event: string; data: unknown }) {
     const { event, data } = message;
 
     if (!event || !data) {

@@ -1,6 +1,6 @@
+import si from "systeminformation";
 import { socket } from ".";
 import { Events } from "../types";
-import si from "systeminformation";
 
 interface SysInfo {
   cpu: {
@@ -30,6 +30,7 @@ interface SysInfo {
 
 class Monitor {
   intervalId: NodeJS.Timeout;
+
   info: SysInfo;
 
   constructor() {
@@ -65,7 +66,7 @@ class Monitor {
     return this.info;
   }
 
-  private async getSystemResources() {
+  async getSystemResources() {
     // CPU Information
     const cpu = await si.cpu();
     const cpuUsage = await si.currentLoad();
@@ -80,8 +81,8 @@ class Monitor {
     };
 
     // Disk Information
-    const disk = await si.fsSize();
-    const diskUsage = disk.map((disk) => ({
+    const disks = await si.fsSize();
+    const diskUsage = disks.map((disk) => ({
       fs: disk.fs,
       type: disk.type,
       size: disk.size,
@@ -91,7 +92,7 @@ class Monitor {
     }));
 
     // System Uptime
-    const uptime = si.time().uptime;
+    const { uptime } = si.time();
 
     return {
       cpu: {

@@ -145,7 +145,7 @@ const ManualUpload = () => {
   }, [isFailed, isDone]);
 
   useEffect(() => {
-    const handleUploadUpdate = (data: any) => {
+    const handleUploadUpdate = (data: Message[]) => {
       setMessages(data);
 
       if (data.length) {

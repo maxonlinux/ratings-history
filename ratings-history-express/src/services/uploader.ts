@@ -1,7 +1,7 @@
-import { Message, Events } from "../types";
-import Parser from "../services/parser";
-import { emitter, tasker } from ".";
 import fs from "fs/promises";
+import { Message, Events } from "../types";
+import Parser from "./parser";
+import { emitter, tasker } from ".";
 
 const emit = {
   message: (message: string) => {
@@ -42,8 +42,7 @@ class Uploader {
         await parser.processZipArchive(filePath);
         emit.done("Completed!");
       } catch (error) {
-        const err = error as any;
-        emit.error(err.message ?? err);
+        emit.error(error instanceof Error ? error.message : String(error));
       } finally {
         this.cleanup();
       }
@@ -69,7 +68,7 @@ class Uploader {
     this.zipFilePath = null;
   }
 
-  public async abort(): Promise<void> {
+  public abort() {
     tasker.cancelTask("upload");
     emit.done("Cancelled by user");
   }

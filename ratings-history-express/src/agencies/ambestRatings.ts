@@ -1,5 +1,5 @@
 import { Page } from "puppeteer";
-import { config } from "../config";
+import config from "../config";
 import { MessageEmitter } from "../types";
 import { downloader } from "../services";
 
@@ -73,4 +73,4 @@ const getAmbestRatingsHistory = async (emit: MessageEmitter) => {
   return { urls: [] };
 };
 
-export { getAmbestRatingsHistory };
+export default getAmbestRatingsHistory;

@@ -8,4 +8,4 @@ const getDemotechRatingsHistory = async (emit: MessageEmitter) => {
   return { urls: [downloadUrl] };
 };
 
-export { getDemotechRatingsHistory };
+export default getDemotechRatingsHistory;

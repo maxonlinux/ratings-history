@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
-import { upload } from "../middlewares/upload";
-import { uploader } from "../services";
 import path from "path";
+import upload from "../middlewares/upload";
+import { uploader } from "../services";
 
 const router = Router();
 
@@ -12,33 +12,36 @@ router.post(
     const filesArray = req.files as Express.Multer.File[];
 
     if (!filesArray.length) {
-      return res.status(400).send("No file uploaded");
+      res.status(400).send("No file uploaded");
+      return;
     }
 
     try {
-      for (const file of filesArray) {
+      const fliePromises = filesArray.map(async (file) => {
         const filePath = path.resolve(file.path);
         await uploader.initiate(filePath);
-      }
+      });
+
+      await Promise.all(fliePromises);
 
       res.status(200).json({ message: "Initiated upload and processing" });
     } catch (error) {
-      const err = error as any;
-      res.status(500).json({ error: err.message ?? err });
-    } finally {
+      res
+        .status(500)
+        .json({ error: error instanceof Error ? error.message : error });
     }
   }
 );
 
-router.post("/abort", async (req: Request, res: Response) => {
+router.post("/abort", async (_req: Request, res: Response) => {
   try {
-    await uploader.abort();
+    uploader.abort();
 
     res.status(200).json({ message: "Aborted" });
   } catch (error) {
-    const err = error as any;
-    res.status(500).json({ error: err.message ?? err });
-  } finally {
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : error });
   }
 });
 

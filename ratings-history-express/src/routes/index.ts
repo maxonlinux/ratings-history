@@ -1,8 +1,8 @@
 import { Router } from "express";
-import files from "../routes/files";
-import agencies from "../routes/agencies";
-import manual from "../routes/manual";
-import server from "../routes/server";
+import files from "./files";
+import agencies from "./agencies";
+import manual from "./manual";
+import server from "./server";
 
 const router = Router();
 

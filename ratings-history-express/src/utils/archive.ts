@@ -1,30 +1,36 @@
 import { open, Entry, ZipFile, Options } from "yauzl";
 
-const openZip = (path: string, options: Options): Promise<ZipFile> => {
-  return new Promise((resolve, reject) => {
+const openZip = (path: string, options: Options): Promise<ZipFile> =>
+  new Promise((resolve, reject) => {
     open(path, options, (err, zipFile) => {
-      if (err) return reject(err.message ?? err);
+      if (err) {
+        reject(err.message ?? err);
+        return;
+      }
+
       resolve(zipFile);
     });
   });
-};
 
-const openReadStream = (zipFile: ZipFile, entry: Entry): Promise<any> => {
-  return new Promise((resolve, reject) => {
+const openReadStream = (zipFile: ZipFile, entry: Entry): Promise<string> =>
+  new Promise((resolve, reject) => {
     zipFile.openReadStream(entry, (err, readStream) => {
-      if (err) return reject(err.message ?? err);
+      if (err) {
+        reject(err.message ?? err);
+        return;
+      }
+
       let data = "";
-      readStream.on("data", (chunk: any) => {
+      readStream.on("data", (chunk) => {
         data += chunk;
       });
       readStream.on("end", () => {
         resolve(data);
       });
-      readStream.on("error", (err) => {
-        reject(err.message ?? err);
+      readStream.on("error", (error) => {
+        reject(error.message ?? error);
       });
     });
   });
-};
 
 export { openZip, openReadStream };

@@ -1,11 +1,11 @@
 import fs from "fs/promises";
-import { config } from "../config";
-import { BaseMetadata, FileMetadata } from "../types";
 import path from "path";
 import { createReadStream } from "fs";
 import readline from "readline";
 import watcher from "@parcel/watcher";
 import { Mutex } from "async-mutex";
+import { BaseMetadata, FileMetadata } from "../types";
+import config from "../config";
 
 const countLines = async (filePath: string) => {
   let lineCount = 0;
@@ -16,8 +16,8 @@ const countLines = async (filePath: string) => {
     crlfDelay: Infinity,
   });
 
-  for await (const _ of rl) {
-    lineCount++;
+  for await (const _line of rl) {
+    lineCount += 1;
   }
 
   return lineCount;
@@ -38,7 +38,9 @@ const generateMetadata = async (filePath: string) => {
 
 class Filer {
   private subscription: watcher.AsyncSubscription | undefined;
+
   private mutex: Mutex;
+
   private metadata: { [key: string]: BaseMetadata };
 
   constructor() {
@@ -75,23 +77,26 @@ class Filer {
 
       this.mutex.runExclusive(async () => {
         console.log(
-          event.type.charAt(0).toUpperCase() + event.type.slice(1) + "d",
+          `${event.type.charAt(0).toUpperCase() + event.type.slice(1)}d`,
           basename
         );
 
         switch (event.type) {
-          case "create":
+          case "create": {
             const metadata = await generateMetadata(event.path);
             this.metadata[basename] = metadata;
             break;
+          }
 
-          case "update":
+          case "update": {
             this.metadata[basename] = await generateMetadata(event.path);
             break;
+          }
 
-          case "delete":
+          case "delete": {
             delete this.metadata[basename];
             break;
+          }
 
           default:
             break;

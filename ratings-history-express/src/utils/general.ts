@@ -1,17 +1,16 @@
 import fs from "fs/promises";
 import path from "path";
 
-const exists = async (path: string) => {
+const exists = async (pathToCheck: string) => {
   try {
-    await fs.access(path);
+    await fs.access(pathToCheck);
     return true;
   } catch (error) {
-    const err = error as any;
-    if (err.code === "ENOENT") {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
       return false;
-    } else {
-      throw err;
     }
+
+    throw error;
   }
 };
 

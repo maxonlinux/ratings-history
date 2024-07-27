@@ -1,5 +1,5 @@
-import axios from "axios";
-import { agenciesMap } from "../App";
+import axios, { AxiosError } from "axios";
+import { agenciesMap } from "../constants";
 import { Events, Message } from "../types";
 import { useEffect } from "react";
 import { emitter } from "../services/emitter";
@@ -82,8 +82,12 @@ const AgencyComponent: React.FC<{
 
               console.log(res.data);
             } catch (error) {
-              const err = error as any;
-              console.error(err.response.data.error);
+              console.error(
+                "Error creating CSV file: " +
+                  (error instanceof AxiosError
+                    ? error.response?.data.error ?? error
+                    : error)
+              );
             }
           }}
         >

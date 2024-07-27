@@ -1,9 +1,6 @@
 import { Page } from "puppeteer";
-import Parser from "../services/parser";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
-
-const parser = new Parser();
 
 const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
   emit.message("Getting JCR history files...");
@@ -33,7 +30,7 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
       (el) => (el as HTMLAnchorElement).href
     );
 
-    emit.message("Success: " + downloadUrl);
+    emit.message(`Success: ${  downloadUrl}`);
 
     return downloadUrl;
   };
@@ -75,4 +72,4 @@ const getJapanCreditRatingsHistory = async (emit: MessageEmitter) => {
   return { urls: [downloadUrl] };
 };
 
-export { getJapanCreditRatingsHistory };
+export default getJapanCreditRatingsHistory;

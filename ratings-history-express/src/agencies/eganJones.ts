@@ -8,4 +8,4 @@ const getEganJonesHistory = async (emit: MessageEmitter) => {
   return { urls: [downloadUrl] };
 };
 
-export { getEganJonesHistory };
+export default getEganJonesHistory;

@@ -8,17 +8,6 @@ import { emitter } from "./services/emitter";
 import { Events } from "./types";
 import SysInfo from "./components/SysInfo";
 
-export const agenciesMap: { [key: string]: string } = {
-  "ambest-ratings": "Ambest Ratings",
-  "fitch-ratings": "Fitch Ratings",
-  "egan-jones": "Egan Jones",
-  "demotech-ratings": "Demotech",
-  "japan-credit-ratings": "Japan Credit Ratings",
-  "kroll-bond-ratings": "Kroll Bond Ratings",
-  "morning-star": "Morningstar",
-  "moodys-ratings": "Moody's Ratings",
-};
-
 function App() {
   const [isRestarting, setIsRestarting] = useState(false);
   const [shouldReload, setShouldReload] = useState(false);
@@ -32,8 +21,10 @@ function App() {
       setShouldReload(true);
       setIsRestarting(true);
     } catch (error) {
-      const err = error as any;
-      console.error(err.message ?? err);
+      console.error(
+        "Error creating CSV file: " +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   };
 
