@@ -163,41 +163,6 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
     return { promise, ...controller };
   };
 
-  const agreeWithPrivacyNotice = (page: Page) => {
-    const controller: {
-      resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: never) => void;
-    } = {
-      resolve: () => {},
-      reject: () => {},
-    };
-
-    const promise = new Promise<void>((resolve, reject) => {
-      controller.resolve = resolve;
-      controller.reject = reject;
-
-      const okButtonSelector =
-        "#mat-dialog-0 > app-gdpr-message > div > div.login-right > button";
-
-      (async () => {
-        try {
-          await page.waitForSelector(okButtonSelector, {
-            visible: true,
-            timeout: 0,
-          });
-
-          await page.click(okButtonSelector);
-
-          emit.message("Agreed with Privacy Notice");
-        } catch (_error) {
-          // reject(error);
-        }
-      })();
-    });
-
-    return { promise, ...controller };
-  };
-
   const browse = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
@@ -235,7 +200,6 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
 
   const browsePromise = browse(page);
   const captchaPromise = waitForCaptcha(page);
-  const privacyNoticePromise = agreeWithPrivacyNotice(page);
 
   const downloadUrlPromise = new Promise<string>((resolve, reject) => {
     try {
@@ -273,22 +237,16 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
   try {
     await page.setRequestInterception(true);
 
-    await Promise.race([
-      browsePromise.promise,
-      captchaPromise.promise,
-      privacyNoticePromise.promise,
-    ]);
+    await Promise.race([browsePromise.promise, captchaPromise.promise]);
+
+    const downloadUrl = await downloadUrlPromise;
+    return { urls: [downloadUrl] };
   } finally {
     browsePromise.resolve();
     captchaPromise.resolve();
-    privacyNoticePromise.resolve();
 
     await context.close();
   }
-
-  const downloadUrl = await downloadUrlPromise;
-
-  return { urls: [downloadUrl] };
 };
 
 export default getMorningStarHistory;

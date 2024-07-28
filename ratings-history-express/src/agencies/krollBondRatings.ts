@@ -14,11 +14,10 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     try {
       await page.goto(url, {
         waitUntil: "load",
-        timeout: 10_000,
+        timeout: 5_000,
       });
     } catch (error) {
       if (error instanceof TimeoutError) {
-        emit.message("Page didn't load in 10s. Reloading...");
         await page.reload();
         return;
       }
@@ -82,6 +81,38 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     });
 
     emit.message("Login successfull!");
+  };
+
+  const acceptCookies = (page: Page) => {
+    const controller: {
+      resolve: (value?: void | PromiseLike<void>) => void;
+      reject: (reason?: never) => void;
+    } = {
+      resolve: () => {},
+      reject: () => {},
+    };
+
+    const promise = new Promise<void>((resolve) => {
+      const acceptButtonSelector = "#onetrust-accept-btn-handler";
+
+      (async () => {
+        try {
+          await page.waitForSelector(acceptButtonSelector, {
+            visible: true,
+            timeout: 0,
+          });
+
+          await page.click(acceptButtonSelector);
+
+          emit.message("Cookies accepted");
+          resolve();
+        } catch (_error) {
+          // reject(error);
+        }
+      })();
+    });
+
+    return { promise, ...controller };
   };
 
   const getDownloadUrl = async (
@@ -153,6 +184,10 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
       });
     });
 
+    const cookiePromise = acceptCookies(newPage);
+
+    cookiePromise.promise;
+
     await newPage.waitForSelector(downloadButtonSelector, {
       visible: true,
       timeout: 0,
@@ -165,38 +200,6 @@ const getKrollBondRatingsHistory = async (emit: MessageEmitter) => {
     const downloadUrl = await downloadUrlPromise;
 
     return downloadUrl;
-  };
-
-  const acceptCookies = (page: Page) => {
-    const controller: {
-      resolve: (value?: void | PromiseLike<void>) => void;
-      reject: (reason?: never) => void;
-    } = {
-      resolve: () => {},
-      reject: () => {},
-    };
-
-    const promise = new Promise<void>((resolve) => {
-      const acceptButtonSelector = "#onetrust-accept-btn-handler";
-
-      (async () => {
-        try {
-          await page.waitForSelector(acceptButtonSelector, {
-            visible: true,
-            timeout: 0,
-          });
-
-          await page.click(acceptButtonSelector);
-
-          emit.message("Cookies accepted");
-          resolve();
-        } catch (_error) {
-          // reject(error);
-        }
-      })();
-    });
-
-    return { promise, ...controller };
   };
 
   const browse = (page: Page) => {
