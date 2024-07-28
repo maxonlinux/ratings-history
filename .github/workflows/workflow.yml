@@ -25,6 +25,12 @@ jobs:
       OUT_DIR_PATH: ${{ vars.OUT_DIR_PATH }}
       TEMP_DIR_NAME: ${{ vars.TEMP_DIR_NAME }}
 
+      ORIGIN: ${{ vars.ORIGIN }}
+      SECRET: ${{ secrets.SECRET }}
+      
+      ADMIN_LOGIN: ${{ secrets.ADMIN_LOGIN }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
       KROLL_BOND_LOGIN: ${{ vars.KROLL_BOND_LOGIN }}
       KROLL_BOND_PASS: ${{ vars.KROLL_BOND_PASS }}
 
@@ -63,6 +69,10 @@ jobs:
           echo "PORT=$PORT" >> .env
           echo "OUT_DIR_PATH=$OUT_DIR_PATH" >> .env
           echo "TEMP_DIR_NAME=$TEMP_DIR_NAME" >> .env
+          echo "ORIGIN=$ORIGIN" >> .env
+          echo "SECRET=$SECRET" >> .env
+          echo "ADMIN_LOGIN=$ADMIN_LOGIN" >> .env
+          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> .env
           echo "KROLL_BOND_LOGIN=$KROLL_BOND_LOGIN" >> .env
           echo "KROLL_BOND_PASS=$KROLL_BOND_PASS" >> .env
           echo "MOODYS_LOGIN=$MOODYS_LOGIN" >> .env
