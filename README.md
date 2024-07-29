@@ -19,11 +19,11 @@ The current version covers the following agencies:
 - [x] Refactor agencies and Downloader class
 - [x] Task management and queuing
 - [x] Authentication for admin panel + protect endpoints with auth middleware
-- [ ] Add more agencies
 - [x] Direct parsing of XML files without ZIP extraction
-- [ ] Improve abort and cleanup logic
 - [x] Optimizations for better resource management
 - [x] Server restart functionality
+- [ ] Add more agencies
+- [ ] Improve abort and cleanup logic
 - [ ] General testing and debugging
 - [ ] Write good readme
 
