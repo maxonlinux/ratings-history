@@ -16,17 +16,18 @@ function App() {
 
         setIsAuthenticated(true);
       } catch (error) {
-        setIsAuthenticated(false);
         if (!(error instanceof AxiosError)) {
           console.error(error);
           return;
         }
 
         if (error.response?.status === 401) {
+          setIsAuthenticated(false);
           console.log("User is not authenticated");
         }
 
         if (error.response?.status === 403) {
+          setIsAuthenticated(false);
           console.error("Token is expired or invalid");
         }
       }

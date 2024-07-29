@@ -8,72 +8,6 @@ const credentials = config.credentials["moodys-ratings"];
 const getMoodysRatings = async (emit: MessageEmitter) => {
   emit.message("Getting Moody's history files...");
 
-  const loadLoginPage = async (page: Page) => {
-    const loginPageUrl = "https://ratings.moodys.com/login";
-
-    await page.goto(loginPageUrl, {
-      waitUntil: "load",
-      timeout: 0,
-    });
-
-    emit.message("Login page loaded");
-  };
-
-  const enterCredentials = async (page: Page) => {
-    const loginInputSelector = "#idp-discovery-username";
-    const nextButtonSelector = "#idp-discovery-submit";
-    const passwordInputSelector = "#okta-signin-password";
-
-    if (!credentials[0] || !credentials[1]) {
-      throw new Error("No credentials for Moody's Ratings!");
-    }
-
-    await page.waitForSelector(loginInputSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.type(loginInputSelector, credentials[0]);
-
-    await page.waitForSelector(nextButtonSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    emit.message("Login entered");
-
-    await page.click(nextButtonSelector);
-    emit.message("Next button clicked");
-
-    await page.waitForSelector(passwordInputSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.type(passwordInputSelector, credentials[1]);
-    emit.message("Password entered");
-  };
-
-  const submitCredentials = async (page: Page) => {
-    const submitButtonSelector = "#okta-signin-submit";
-
-    await page.waitForSelector(submitButtonSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.click(submitButtonSelector);
-
-    emit.message("Credentials submitted");
-
-    await page.waitForNavigation({
-      waitUntil: "networkidle2",
-      timeout: 0,
-    });
-
-    emit.message("Login to Moody's successful!");
-  };
-
   const getDownloadUrlAndCookie = async (page: Page, browser: Browser) => {
     const downloadPageUrl = "https://ratings.moodys.com/sec-17g-7b";
 
@@ -156,9 +90,65 @@ const getMoodysRatings = async (emit: MessageEmitter) => {
   const page = await context.newPage();
 
   try {
-    await loadLoginPage(page);
-    await enterCredentials(page);
-    await submitCredentials(page);
+    const loginPageUrl = "https://ratings.moodys.com/login";
+
+    await page.goto(loginPageUrl, {
+      waitUntil: "load",
+      timeout: 0,
+    });
+
+    emit.message("Login page loaded");
+
+    const loginInputSelector = "#idp-discovery-username";
+    const nextButtonSelector = "#idp-discovery-submit";
+    const passwordInputSelector = "#okta-signin-password";
+
+    if (!credentials[0] || !credentials[1]) {
+      throw new Error("No credentials for Moody's Ratings!");
+    }
+
+    await page.waitForSelector(loginInputSelector, {
+      visible: true,
+      timeout: 0,
+    });
+
+    await page.type(loginInputSelector, credentials[0]);
+
+    await page.waitForSelector(nextButtonSelector, {
+      visible: true,
+      timeout: 0,
+    });
+
+    emit.message("Login entered");
+
+    await page.click(nextButtonSelector);
+    emit.message("Next button clicked");
+
+    await page.waitForSelector(passwordInputSelector, {
+      visible: true,
+      timeout: 0,
+    });
+
+    await page.type(passwordInputSelector, credentials[1]);
+    emit.message("Password entered");
+
+    const submitButtonSelector = "#okta-signin-submit";
+
+    await page.waitForSelector(submitButtonSelector, {
+      visible: true,
+      timeout: 0,
+    });
+
+    await page.click(submitButtonSelector);
+
+    emit.message("Credentials submitted");
+
+    await page.waitForNavigation({
+      waitUntil: "networkidle2",
+      timeout: 0,
+    });
+
+    emit.message("Login to Moody's successful!");
 
     const downloadUrlAndCookie = await getDownloadUrlAndCookie(page, browser);
 

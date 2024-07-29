@@ -26,6 +26,7 @@ const config = {
   outDirPath: process.env.OUT_DIR_PATH,
   tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
   chromeExec: "browsers/Thorium.app/Contents/MacOS/Thorium",
+  // debug: process.env.DEBUG === "true" ? true : false,
   secret: process.env.SECRET,
   allowedOrigins: [process.env.ORIGIN],
   adminCredentials: {

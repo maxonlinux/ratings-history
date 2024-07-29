@@ -36,7 +36,7 @@ class Downloader {
     }
 
     this.browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
       // executablePath: config.chromeExec,
       defaultViewport: {
         width: 1280 + Math.floor(Math.random() * 100),
@@ -137,17 +137,19 @@ class Downloader {
 
         const downloadedFilesPaths = await Promise.all(downloadPromises);
 
-        messageEmitter.message("Downloading and extraction completed!");
+        messageEmitter.message("Downloading completed!");
 
         // Process files
 
         const parser = new Parser();
 
-        messageEmitter.message(
-          "Parsing data and creating CSV files (It could take a while, please be patient...)"
-        );
+        for (const [i, filePath] of downloadedFilesPaths.entries()) {
+          messageEmitter.message(
+            `Parsing data and creating CSV files (It could take a while, please be patient...) (${
+              i + 1
+            }/${downloadedFilesPaths.length})`
+          );
 
-        const parsePromises = downloadedFilesPaths.map(async (filePath) => {
           await parser.processZipArchive(filePath);
 
           messageEmitter.message(
@@ -155,9 +157,7 @@ class Downloader {
           );
 
           await fs.rm(filePath);
-        });
-
-        await Promise.all(parsePromises);
+        }
 
         messageEmitter.done("Completed!");
       } catch (error) {

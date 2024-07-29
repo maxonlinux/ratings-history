@@ -1,34 +1,8 @@
-import { Page } from "puppeteer";
 import { downloader } from "../services";
 import { MessageEmitter } from "../types";
 
 const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   emit.message("Getting Fitch Ratings history files...");
-
-  const loadPage = async (page: Page) => {
-    const url = `https://www.fitchratings.com/ratings-history-disclosure`;
-
-    await page.goto(url, {
-      waitUntil: "load",
-      timeout: 0,
-    });
-  };
-
-  const getUrl = async (page: Page) => {
-    const selector = "#btn-1";
-
-    await page.waitForSelector(selector, {
-      timeout: 0,
-      visible: true,
-    });
-
-    const downloadUrl = await page.$eval(
-      selector,
-      (el) => (el as HTMLAnchorElement).href
-    );
-
-    return downloadUrl;
-  };
 
   const browser = await downloader.getBrowser();
   const context = await browser.createBrowserContext();
@@ -52,12 +26,31 @@ const getFitchRatingsHistory = async (emit: MessageEmitter) => {
     request.continue();
   });
 
-  await loadPage(page);
+  const url = `https://www.fitchratings.com/ratings-history-disclosure`;
+
+  await page.goto(url, {
+    waitUntil: "load",
+    timeout: 0,
+  });
 
   emit.message("Page loaded");
   emit.message("Getting download URL...");
 
-  const downloadUrl = await getUrl(page);
+  const selector = "#btn-1";
+
+  await page.waitForSelector(selector, {
+    timeout: 0,
+    visible: true,
+  });
+
+  const downloadUrl = await page.$eval(
+    selector,
+    (el) => (el as HTMLAnchorElement).href
+  );
+
+  if (!downloadUrl) {
+    throw new Error("No link found on page!");
+  }
 
   await context.close();
 

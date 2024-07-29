@@ -8,126 +8,6 @@ const credentials = config.credentials["morning-star"];
 const getMorningStarHistory = async (emit: MessageEmitter) => {
   emit.message("Getting Morning Star history files...");
 
-  const loadPage = async (page: Page) => {
-    const url = `https://dbrs.morningstar.com/contact`;
-
-    await page.goto(url, {
-      waitUntil: "networkidle0",
-      timeout: 0,
-    });
-
-    emit.message("Page loaded");
-  };
-
-  const goToLoginPage = async (page: Page) => {
-    const loginButtonSelector =
-      "body > app-root > app-site-header > div > nav.main-nav > div > ul > li:nth-child(7) > a";
-
-    await page.waitForSelector(loginButtonSelector, {
-      timeout: 0,
-      visible: true,
-    });
-
-    await page.click(loginButtonSelector);
-
-    emit.message("Login button clicked");
-
-    await page.waitForNavigation({
-      waitUntil: "networkidle2",
-      timeout: 0,
-    });
-
-    emit.message("Login page loaded");
-  };
-
-  const enterCredentials = async (page: Page) => {
-    const loginInputSelector = "#usernameField";
-    const passwordInputSelector = "#passwordField";
-
-    if (!credentials[0] || !credentials[1]) {
-      throw new Error("No credentials for Morning Star!");
-    }
-
-    await page.waitForSelector(loginInputSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.waitForSelector(passwordInputSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.type(loginInputSelector, credentials[0]);
-    await page.type(passwordInputSelector, credentials[1]);
-
-    emit.message("Credentials entered");
-  };
-
-  const submitCredentials = async (page: Page) => {
-    const submitButtonSelector = "#btn-login";
-
-    await page.waitForSelector(submitButtonSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.click(submitButtonSelector);
-
-    emit.message("Credentials submitted");
-
-    await page.waitForNavigation({
-      waitUntil: "load",
-      timeout: 0,
-    });
-
-    emit.message("Login to Morning Star successful!");
-  };
-
-  const goToDownloadPage = async (page: Page) => {
-    const downloadPageUrl = "https://dbrs.morningstar.com/about/historyAgree";
-
-    await page.goto(downloadPageUrl, {
-      waitUntil: "networkidle2",
-      timeout: 0,
-    });
-
-    emit.message("Download page loaded");
-  };
-
-  const agreeWithTerms = async (page: Page) => {
-    const agreeCheckboxSelector = "#acceptance-check-box";
-
-    await page.waitForSelector(agreeCheckboxSelector, {
-      timeout: 0,
-      visible: true,
-    });
-
-    await page.click(agreeCheckboxSelector);
-
-    emit.message("Agreed with terms");
-  };
-
-  const getDownloadUrl = async (page: Page) => {
-    const downloadButtonSelector =
-      "#main-content > app-history-agree > div > section > div > div > div.grid-2of3 > div:nth-child(6) > button";
-
-    await page.waitForSelector(downloadButtonSelector, {
-      timeout: 0,
-      visible: true,
-    });
-
-    await page.click(downloadButtonSelector);
-
-    await page.waitForSelector(downloadButtonSelector, {
-      visible: true,
-      timeout: 0,
-    });
-
-    await page.click(downloadButtonSelector);
-    emit.message("Download button clicked");
-  };
-
   const waitForCaptcha = (page: Page) => {
     const controller: {
       resolve: (value?: void | PromiseLike<void>) => void;
@@ -177,13 +57,113 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
       controller.reject = reject;
       (async () => {
         try {
-          await loadPage(page);
-          await goToLoginPage(page);
-          await enterCredentials(page);
-          await submitCredentials(page);
-          await goToDownloadPage(page);
-          await agreeWithTerms(page);
-          await getDownloadUrl(page);
+          const url = `https://dbrs.morningstar.com/contact`;
+
+          await page.goto(url, {
+            waitUntil: "networkidle0",
+            timeout: 0,
+          });
+
+          emit.message("Page loaded");
+
+          const loginButtonSelector =
+            "body > app-root > app-site-header > div > nav.main-nav > div > ul > li:nth-child(7) > a";
+
+          await page.waitForSelector(loginButtonSelector, {
+            timeout: 0,
+            visible: true,
+          });
+
+          await page.click(loginButtonSelector);
+
+          emit.message("Login button clicked");
+
+          await page.waitForNavigation({
+            waitUntil: "networkidle2",
+            timeout: 0,
+          });
+
+          emit.message("Login page loaded");
+
+          const loginInputSelector = "#usernameField";
+          const passwordInputSelector = "#passwordField";
+
+          if (!credentials[0] || !credentials[1]) {
+            throw new Error("No credentials for Morning Star!");
+          }
+
+          await page.waitForSelector(loginInputSelector, {
+            visible: true,
+            timeout: 0,
+          });
+
+          await page.waitForSelector(passwordInputSelector, {
+            visible: true,
+            timeout: 0,
+          });
+
+          await page.type(loginInputSelector, credentials[0]);
+          await page.type(passwordInputSelector, credentials[1]);
+
+          emit.message("Credentials entered");
+
+          const submitButtonSelector = "#btn-login";
+
+          await page.waitForSelector(submitButtonSelector, {
+            visible: true,
+            timeout: 0,
+          });
+
+          await page.click(submitButtonSelector);
+
+          emit.message("Credentials submitted");
+
+          await page.waitForNavigation({
+            waitUntil: "load",
+            timeout: 0,
+          });
+
+          emit.message("Login to Morning Star successful!");
+
+          const downloadPageUrl =
+            "https://dbrs.morningstar.com/about/historyAgree";
+
+          await page.goto(downloadPageUrl, {
+            waitUntil: "networkidle2",
+            timeout: 0,
+          });
+
+          emit.message("Download page loaded");
+
+          const agreeCheckboxSelector = "#acceptance-check-box";
+
+          await page.waitForSelector(agreeCheckboxSelector, {
+            timeout: 0,
+            visible: true,
+          });
+
+          await page.click(agreeCheckboxSelector);
+
+          emit.message("Agreed with terms");
+
+          const downloadButtonSelector =
+            "#main-content > app-history-agree > div > section > div > div > div.grid-2of3 > div:nth-child(6) > button";
+
+          await page.waitForSelector(downloadButtonSelector, {
+            timeout: 0,
+            visible: true,
+          });
+
+          await page.click(downloadButtonSelector);
+
+          await page.waitForSelector(downloadButtonSelector, {
+            visible: true,
+            timeout: 0,
+          });
+
+          await page.click(downloadButtonSelector);
+
+          emit.message("Download button clicked");
           resolve();
         } catch (error) {
           reject(error);

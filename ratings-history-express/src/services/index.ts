@@ -6,12 +6,15 @@ import { Events, Message } from "../types";
 import Takser from "./tasker";
 import Monitor from "./monitor";
 import Filer from "./filer";
+import Scheduler from "./scheduler";
+import { agenciesFunctionsMap } from "../agencies";
 
 const emitter = new EventEmitter();
 const downloader = new Downloader();
 const uploader = new Uploader();
 const socket = new Socket("/ws");
 const tasker = new Takser(1);
+const scheduler = new Scheduler(agenciesFunctionsMap, "0 0 1 * *", 3);
 const monitor = new Monitor();
 const filer = new Filer();
 
@@ -47,4 +50,13 @@ emitter.on(Events.AGENCIES_UPDATE, async (data: Message) => {
   }
 });
 
-export { downloader, uploader, socket, emitter, tasker, monitor, filer };
+export {
+  downloader,
+  uploader,
+  socket,
+  emitter,
+  tasker,
+  monitor,
+  filer,
+  scheduler,
+};

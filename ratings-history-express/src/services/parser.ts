@@ -167,7 +167,7 @@ class Parser {
         }
 
         try {
-          console.log("Processing", entry.fileName);
+          // console.log("Processing", entry.fileName);
 
           const data = await openReadStream(zipFile, entry);
 

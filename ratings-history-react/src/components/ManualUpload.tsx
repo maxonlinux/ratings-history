@@ -101,6 +101,13 @@ const ManualUpload = () => {
       return;
     }
 
+    for (const file of uploadedFiles) {
+      file.size > 1024 * 1024 * 100; // 100 MB
+      setError("Files cannot be bigger than 100 MB.");
+      removeItem();
+      return;
+    }
+
     setIsUploading(true);
 
     try {
