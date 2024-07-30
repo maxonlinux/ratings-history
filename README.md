@@ -1,5 +1,5 @@
-# Ratings History
-This project allows you to download credit rating data from various agencies (see the [Agencies List](#agencies-list) section) and convert it to the sorted CSV files.
+# Ratings History (with Azure Functions)
+This branch introduces Azure Functions to this project, aiming to enhance the modularity and performance of this application. The primary goal is to offload scraping functionality from the existing Express backend to serverless Azure Functions. This change allows to reduce the load on the main backend improving overall system performance.
 
 ## Agencies List
 The current version covers the following agencies:
