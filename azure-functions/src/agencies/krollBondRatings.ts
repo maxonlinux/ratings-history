@@ -1,5 +1,5 @@
-import { Page, Browser, Target, TimeoutError } from "puppeteer";
-import { getBrowser } from "../utils/getBrowser";
+import { Page, Browser, Target, TimeoutError } from "puppeteer-core";
+import chrome from "../utils/chrome";
 
 const timeout = 5_000;
 
@@ -224,7 +224,7 @@ const getKrollBondRatingsHistory = async (emit: {
 
   emit.message("Getting KBRA history files...");
 
-  const browser = await getBrowser();
+  const browser = await chrome.get();
   const page = await browser.newPage();
 
   const browsePromise = browse(page);

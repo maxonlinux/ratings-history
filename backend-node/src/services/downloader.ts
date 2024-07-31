@@ -98,9 +98,11 @@ class Downloader {
       messageEmitter.message("Getting download URL(s)...");
 
       try {
-        const response = await axios.post(
-          "http://localhost:7071/api/agencyFunction?name=" + agencyName
-        );
+        const response = await axios.get(config.agencyFunctionUrl, {
+          params: {
+            name: agencyName,
+          },
+        });
 
         if (response.data.error) {
           throw new Error(response.data.error);
@@ -167,13 +169,14 @@ class Downloader {
         this.cleanup(agencyName);
       }
     };
-    tasker.addTask(agencyName, task, options?.retries);
 
     emitter.emit(Events.AGENCIES_UPDATE, {
       agencyName,
       message: "Queued...",
       type: "message",
     });
+
+    tasker.addTask(agencyName, task, options?.retries);
   }
 
   public abort(agencyName: string) {

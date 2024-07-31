@@ -1,10 +1,10 @@
 import { MessageEmitter } from "../types";
-import { getBrowser } from "../utils/getBrowser";
+import chrome from "../utils/chrome";
 
 const getFitchRatingsHistory = async (emit: MessageEmitter) => {
   emit.message("Getting Fitch Ratings history files...");
 
-  const browser = await getBrowser();
+  const browser = await chrome.get();
   const page = await browser.newPage();
 
   await page.setRequestInterception(true);

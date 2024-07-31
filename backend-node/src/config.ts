@@ -9,10 +9,6 @@ if (!process.env.OUT_DIR_PATH) {
   throw new Error("No out directory path in .env");
 }
 
-if (!process.env.TEMP_DIR_NAME) {
-  throw new Error("No temp directory name in .env");
-}
-
 if (!process.env.SECRET) {
   throw new Error("No secret in .env");
 }
@@ -21,15 +17,30 @@ if (!process.env.ORIGIN) {
   throw new Error("No origin (admin panel domain) in .env");
 }
 
+if (!process.env.AGENCY_FUNCTION_URL) {
+  throw new Error("No agency function URL in .env");
+}
+
+if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+  console.warn(
+    "No mail credentials in .env! You will not be able to receive task reports"
+  );
+}
+
 const config = {
   rootDirPath,
   outDirPath: process.env.OUT_DIR_PATH,
-  tempDirPath: path.resolve(rootDirPath, process.env.TEMP_DIR_NAME),
+  tempDirPath: path.resolve(rootDirPath, "temp"),
   secret: process.env.SECRET,
+  agencyFunctionUrl: process.env.AGENCY_FUNCTION_URL,
   allowedOrigins: [process.env.ORIGIN],
   adminCredentials: {
     login: process.env.ADMIN_PASSWORD,
     password: process.env.ADMIN_PASSWORD,
+  },
+  mailCredentials: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
   agenciesMap: [
     "fitch-ratings",

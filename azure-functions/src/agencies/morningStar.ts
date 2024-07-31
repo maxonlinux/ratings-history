@@ -1,6 +1,6 @@
-import { Page } from "puppeteer";
+import { Page } from "puppeteer-core";
 
-import { getBrowser } from "../utils/getBrowser";
+import chrome from "../utils/chrome";
 import { MessageEmitter } from "../types";
 const credentials = ["salane@citmo.net", "A4y66PE$augqYjJ"];
 
@@ -169,7 +169,7 @@ const getMorningStarHistory = async (emit: MessageEmitter) => {
     return { promise, ...controller };
   };
 
-  const browser = await getBrowser();
+  const browser = await chrome.get();
   const page = await browser.newPage();
 
   const browsePromise = browse(page);

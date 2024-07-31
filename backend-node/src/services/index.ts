@@ -55,11 +55,15 @@ emitter.on(
   async (report: {
     [key: string]: { attempts: number; error: unknown | null };
   }) => {
+    if (!config.mailCredentials.user || !config.mailCredentials.pass) {
+      return;
+    }
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "maxonlinuxxx@gmail.com",
-        pass: "rzripjyuiocdrmwy",
+        user: config.mailCredentials.user,
+        pass: config.mailCredentials.pass,
       },
     });
 
@@ -92,8 +96,8 @@ emitter.on(
     `;
 
     const mailOptions = {
-      from: "maxonlinuxxx@gmail.com",
-      to: "maxonlinux@gmail.com",
+      from: config.mailCredentials.user,
+      to: config.mailCredentials.user,
       subject: "RatighsHistory.info | Tasks Report",
       html: htmlContent,
     };

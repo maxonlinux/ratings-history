@@ -1,5 +1,5 @@
-import { Browser, Page, Target } from "puppeteer";
-import { getBrowser } from "../utils/getBrowser";
+import { Browser, Page, Target } from "puppeteer-core";
+import chrome from "../utils/chrome";
 import { AgencyFunctionData } from "../types";
 
 const credentials = ["tepapem371@bacaki.com", "fdU-EF3!Lr8YRA$"];
@@ -87,7 +87,7 @@ const getMoodysRatingsHistory = async (emit: {
     return result;
   };
 
-  const browser = await getBrowser();
+  const browser = await chrome.get();
   const page = await browser.newPage();
 
   try {
