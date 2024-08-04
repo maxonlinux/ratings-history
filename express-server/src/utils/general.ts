@@ -1,5 +1,17 @@
 import fs from "fs/promises";
 import path from "path";
+import { FileMetadata } from "../types";
+
+const compareMetadata = (a: FileMetadata, b: FileMetadata) => {
+  const dateA = a.name.split(" ")[0];
+  const dateB = b.name.split(" ")[0];
+
+  // Compare dates first (latest date first)
+  if (dateA > dateB) return -1;
+  if (dateA < dateB) return 1;
+
+  return a.name.localeCompare(b.name);
+};
 
 const exists = async (pathToCheck: string) => {
   try {
@@ -30,4 +42,4 @@ const emptyFolder = async (folderPath: string) => {
   }
 };
 
-export { exists, emptyFolder };
+export { exists, emptyFolder, compareMetadata };

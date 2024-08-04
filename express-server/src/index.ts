@@ -3,14 +3,18 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "fs/promises";
 import path from "path";
+import vhost from "vhost";
 import { exists } from "./utils/general";
 import config from "./config";
-import router from "./routes";
+import { adminRouter, apiRouter, mainRouter } from "./routes";
 import { socket } from "./services";
 import cookieParser from "cookie-parser";
 
 dotenv.config();
 const app = express();
+const apiApp = express();
+const adminApp = express();
+
 const port = process.env.PORT;
 
 const options = {
@@ -19,13 +23,24 @@ const options = {
   credentials: true,
 };
 
-app.use(cors(options));
-app.use(express.json());
-app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
+adminApp.use(adminRouter);
 
-app.use("/public", express.static(config.outDirPath));
-app.use("/api/v1/", router);
+apiApp.use(cors(options));
+apiApp.use(express.json());
+apiApp.use(cookieParser());
+apiApp.use(express.urlencoded({ extended: true }));
+apiApp.use(apiRouter);
+
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "pug");
+
+app.use(vhost("admin.*", adminApp));
+app.use(vhost("api.*", apiApp));
+app.use(mainRouter);
+
+app.use((_req, res) => {
+  res.status(404).render("404");
+});
 
 const initializeDirectories = async () => {
   const outDirExists = await exists(config.outDirPath);

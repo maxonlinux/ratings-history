@@ -1,19 +1,8 @@
 import { Request, Response, Router } from "express";
 import { filer } from "../services";
-import { FileMetadata } from "../types";
+import { compareMetadata } from "../utils/general";
 
 const router = Router();
-
-function compareMetadata(a: FileMetadata, b: FileMetadata) {
-  const dateA = a.name.split(" ")[0];
-  const dateB = b.name.split(" ")[0];
-
-  // Compare dates first (latest date first)
-  if (dateA > dateB) return -1;
-  if (dateA < dateB) return 1;
-
-  return a.name.localeCompare(b.name);
-}
 
 router.get("/", async (_req: Request, res: Response) => {
   try {

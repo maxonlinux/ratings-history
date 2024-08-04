@@ -114,7 +114,7 @@ const FileComponent: React.FC<{
         ) : (
           <a
             className="hover:text-blue-700 border-b border-transparent"
-            href={config.baseUrl + "/public/" + file.name}
+            href={config.apiUrl + "/public/" + file.name}
           >
             {file.name}
           </a>

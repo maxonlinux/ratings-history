@@ -16,8 +16,7 @@ const [protocol, url] = baseUrlSplitted;
 const secure = protocol.toLowerCase() === "https";
 
 const config = {
-  baseUrl: import.meta.env.VITE_BASE_URL,
-  apiUrl: `${import.meta.env.VITE_BASE_URL}/api/v1`,
+  apiUrl: import.meta.env.VITE_BASE_URL,
   wsUrl: `${secure ? "wss" : "ws"}://${url}/ws`,
 };
 
