@@ -1,5 +1,5 @@
-# Ratings History (with Azure Functions)
-This branch introduces Azure Functions to this project, aiming to enhance the modularity and performance of this application. The primary goal is to offload scraping functionality from the existing Express backend to serverless Azure Functions. This change allows to reduce the load on the main backend improving overall system performance.
+# Ratings History (Azure Web App + Azure Functions)
+This branch introduces Azure Functions to this project, aiming to enhance the modularity and performance of this application. The project is now suitable for deployment to the Azure Web Apps. The primary goal is to offload scraping functionality from the existing Express backend to serverless Azure Functions. This change allows to reduce the load on the main backend improving overall system performance.
 
 ## Agencies List
 The current version covers the following agencies:
