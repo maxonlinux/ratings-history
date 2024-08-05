@@ -5,12 +5,9 @@ import fs from "fs/promises";
 import path from "path";
 import { exists } from "./utils/general";
 import config from "./config";
-import apiRouter from "./routes/api";
-import adminRouter from "./routes/admin";
-import mainRouter from "./routes/main";
+import router from "./routes";
 import { socket } from "./services";
 import cookieParser from "cookie-parser";
-import proxy from "express-http-proxy";
 
 dotenv.config();
 const app = express();
@@ -29,18 +26,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", mainRouter);
-app.use("/admin", adminRouter);
-app.use("/api", apiRouter);
-
-app.use("/assets", (req, res, next) => {
-  const protocol = req.protocol;
-  const host = req.get("host");
-
-  proxy(`${protocol}://${host}`, {
-    proxyReqPathResolver: (req) => `/admin/assets${req.url}`,
-  })(req, res, next);
-});
+app.use(router);
 
 app.use((_req, res) => {
   res.status(404).render("404");
