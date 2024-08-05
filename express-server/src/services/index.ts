@@ -18,6 +18,9 @@ const tasker = new Takser(1);
 const monitor = new Monitor();
 const filer = new Filer();
 
+const scheduleRule = "0 0 1,15 * *"; // every 1st and 15th day of the month
+new Scheduler(config.agenciesMap, scheduleRule, 3);
+
 emitter.on(Events.UPLOAD_UPDATE, async (data: Message) => {
   console.log("Update from uploader: ", data);
   try {
@@ -97,7 +100,7 @@ emitter.on(
 
     const mailOptions = {
       from: config.mailCredentials.user,
-      to: config.mailCredentials.user,
+      to: config.mailCredentials.recipient,
       subject: "RatighsHistory.info | Tasks Report",
       html: htmlContent,
     };
@@ -110,10 +113,5 @@ emitter.on(
     }
   }
 );
-
-const scheduleRule = "0 0 1,15 * *"; // every 1st and 15th day of the month
-// const scheduleRule = "*/10 * * * *"; // every 10 min
-
-new Scheduler(config.agenciesMap, scheduleRule, 3);
 
 export { downloader, uploader, socket, emitter, tasker, monitor, filer };

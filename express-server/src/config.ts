@@ -17,7 +17,11 @@ if (!process.env.AGENCY_FUNCTION_URL) {
   throw new Error("No agency function URL in .env");
 }
 
-if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+if (
+  !process.env.MAIL_USER ||
+  !process.env.MAIL_PASS ||
+  !process.env.MAIL_RECIPIENT
+) {
   console.warn(
     "No mail credentials in .env! You will not be able to receive task reports"
   );
@@ -36,6 +40,7 @@ const config = {
   mailCredentials: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
+    recipient: process.env.MAIL_RECIPIENT,
   },
   agenciesMap: [
     "fitch-ratings",
