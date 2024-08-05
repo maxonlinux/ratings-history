@@ -5,10 +5,6 @@ dotenv.config();
 
 const rootDirPath = process.cwd();
 
-if (!process.env.OUT_DIR_PATH) {
-  throw new Error("No out directory path in .env");
-}
-
 if (!process.env.SECRET) {
   throw new Error("No secret in .env");
 }
@@ -29,7 +25,7 @@ if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
 
 const config = {
   rootDirPath,
-  outDirPath: process.env.OUT_DIR_PATH,
+  outDirPath: path.resolve(rootDirPath, "public"),
   tempDirPath: path.resolve(rootDirPath, "temp"),
   secret: process.env.SECRET,
   agencyFunctionUrl: process.env.AGENCY_FUNCTION_URL,
