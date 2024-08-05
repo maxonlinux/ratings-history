@@ -1,0 +1,14 @@
+{
+  "name": "ratings-history",
+  "version": "1.0.0",
+  "scripts": {
+    "build:server": "cd express-server && npm install && npm run build",
+    "build:admin": "cd admin-panel && npm install && npm run build",
+    "build": "npm run build:server && npm run build:admin",
+    "postbuild": "node postbuild.js",
+    "start": "cd express-server && node dist/index.js"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  }
+}

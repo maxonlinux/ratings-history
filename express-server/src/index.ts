@@ -3,40 +3,44 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "fs/promises";
 import path from "path";
-import vhost from "vhost";
 import { exists } from "./utils/general";
 import config from "./config";
-import { adminRouter, apiRouter, mainRouter } from "./routes";
+import apiRouter from "./routes/api";
+import adminRouter from "./routes/admin";
+import mainRouter from "./routes/main";
 import { socket } from "./services";
 import cookieParser from "cookie-parser";
+import proxy from "express-http-proxy";
 
 dotenv.config();
 const app = express();
-const apiApp = express();
-const adminApp = express();
-
 const port = process.env.PORT;
 
 const options = {
-  origin: config.allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
 
-adminApp.use(adminRouter);
-
-apiApp.use(cors(options));
-apiApp.use(express.json());
-apiApp.use(cookieParser());
-apiApp.use(express.urlencoded({ extended: true }));
-apiApp.use(apiRouter);
-
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
-app.use(vhost("admin.*", adminApp));
-app.use(vhost("api.*", apiApp));
-app.use(mainRouter);
+app.use(cors(options));
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/", mainRouter);
+app.use("/admin", adminRouter);
+app.use("/api", apiRouter);
+
+app.use("/assets", (req, res, next) => {
+  const protocol = req.protocol;
+  const host = req.get("host");
+
+  proxy(`${protocol}://${host}`, {
+    proxyReqPathResolver: (req) => `/admin/assets${req.url}`,
+  })(req, res, next);
+});
 
 app.use((_req, res) => {
   res.status(404).render("404");

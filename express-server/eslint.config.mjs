@@ -18,6 +18,9 @@ export default tseslint.config(
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
+    ignorePatterns: ["dist/"],
+  },
+  {
     languageOptions: {
       globals: globals.node,
       parserOptions: {

@@ -1,5 +1,6 @@
 import { Events } from "../types";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventCallback = (data: any) => void;
 
 class EventEmitter {
@@ -8,6 +9,7 @@ class EventEmitter {
     EventCallback[]
   >;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public dispatch(event: Events, data: any): void {
     const callbacks = this.events[event];
     if (!callbacks) return;

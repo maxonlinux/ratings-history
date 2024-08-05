@@ -13,10 +13,6 @@ if (!process.env.SECRET) {
   throw new Error("No secret in .env");
 }
 
-if (!process.env.ORIGIN) {
-  throw new Error("No origin (admin panel domain) in .env");
-}
-
 if (!process.env.AGENCY_FUNCTION_URL) {
   throw new Error("No agency function URL in .env");
 }
@@ -33,7 +29,6 @@ const config = {
   tempDirPath: path.resolve(rootDirPath, "temp"),
   secret: process.env.SECRET,
   agencyFunctionUrl: process.env.AGENCY_FUNCTION_URL,
-  allowedOrigins: [process.env.ORIGIN],
   adminCredentials: {
     login: process.env.ADMIN_PASSWORD,
     password: process.env.ADMIN_PASSWORD,

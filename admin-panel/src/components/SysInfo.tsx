@@ -59,6 +59,7 @@ const SysInfo = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.subscribe("SYSTEM_INFO", (data: any) => {
       console.log(data);
       setSysInfo(data);

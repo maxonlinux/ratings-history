@@ -184,13 +184,15 @@ class Parser {
 
       zipFile.close();
 
-      const renamePromises = Array.from(csvFileNameSet).map(async (file) => {
+      const copyPromises = Array.from(csvFileNameSet).map(async (file) => {
         const oldPath = path.resolve(config.tempDirPath, "csv", `${file}.csv`);
         const newPath = path.resolve(config.outDirPath, `${file}.csv`);
-        await fs.rename(oldPath, newPath);
+
+        await fs.copyFile(oldPath, newPath);
+        await fs.rm(oldPath);
       });
 
-      await Promise.all(renamePromises);
+      await Promise.all(copyPromises);
     } catch (error) {
       throw new Error(
         `Error processing ZIP file: ${

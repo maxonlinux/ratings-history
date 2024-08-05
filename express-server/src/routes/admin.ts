@@ -3,12 +3,12 @@ import path from "path";
 
 const router = Router();
 
-const adminPanelPath = "../../../admin-panel/dist";
+const adminPanelPath = path.resolve(__dirname, "../../dist-admin");
 
-router.use(express.static(path.join(__dirname, adminPanelPath)));
+router.use(express.static(adminPanelPath));
 
-router.get("*", (_req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, adminPanelPath, "index.html"));
+router.get(["/", "/index.html"], (_req: Request, res: Response) => {
+  res.sendFile(path.join(adminPanelPath, "index.html"));
 });
 
 export default router;

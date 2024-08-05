@@ -15,6 +15,10 @@ const FilesView = () => {
     const response = await axios.get(config.apiUrl + "/files");
 
     setIsLoading(false);
+    if (!response.data.message) {
+      return;
+    }
+
     setFiles(response.data.message);
   };
 
@@ -49,30 +53,29 @@ const FilesView = () => {
     };
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="absolute z-20 left-0 top-0 w-full h-full flex gap-2 items-center justify-center text-3xl font-thin">
+        <span className="ic animate-spin">progress_activity</span>
+        Getting files...
+      </div>
+    );
+  }
+
   return (
     <div className="relative p-4 w-1/2 overflow-y-auto">
       <h1 className="flex items-center gap-2 text-3xl mb-8 mt-4">
-        <span className="font-thin">
-          Files {!isLoading && <>({files.length})</>}
-        </span>
+        <span className="font-thin">Files ({files.length})</span>
       </h1>
-      {!isLoading && files.length ? (
+      {files.length ? (
         <div className="flex flex-col gap-4">
           {files.map((file: FileMetaData) => (
             <FileComponent key={file.name} file={file} />
           ))}
         </div>
       ) : (
-        !isLoading && (
-          <div className="flex flex-col items-center justify-center h-full w-full text-gray-400">
-            <span className="ic text-7xl font-thin">folder</span>No files
-          </div>
-        )
-      )}
-      {isLoading && (
-        <div className="absolute z-20 left-0 top-0 w-full h-full flex gap-2 items-center justify-center text-3xl font-thin">
-          <span className="ic animate-spin">progress_activity</span>
-          Getting files...
+        <div className="flex flex-col items-center justify-center h-full w-full text-gray-400">
+          <span className="ic text-7xl font-thin">folder</span>No files
         </div>
       )}
     </div>
