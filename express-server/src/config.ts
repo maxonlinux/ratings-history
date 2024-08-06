@@ -28,17 +28,6 @@ if (
   );
 }
 
-if (
-  isAzure &&
-  (!process.env.AZURE_SUBSCRIPTION_ID ||
-    !process.env.AZURE_RESOURCE_GROUP_NAME ||
-    !process.env.AZURE_APP_NAME)
-) {
-  console.warn(
-    "No Azure credentials in .env! Server restart functionality is limited"
-  );
-}
-
 const config = {
   rootDirPath,
   isAzure,
@@ -46,11 +35,6 @@ const config = {
   tempDirPath: path.resolve(rootDirPath, "temp"),
   secret: process.env.SECRET,
   agencyFunctionUrl: process.env.AGENCY_FUNCTION_URL,
-  azureCredentials: {
-    subscriptionId: process.env.AZURE_SUBSCRIPTION_ID,
-    resourceGroupName: process.env.AZURE_RESOURCE_GROUP_NAME,
-    appName: process.env.AZURE_APP_NAME,
-  },
   adminCredentials: {
     login: process.env.ADMIN_PASSWORD,
     password: process.env.ADMIN_PASSWORD,

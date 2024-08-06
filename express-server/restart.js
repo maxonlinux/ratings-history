@@ -12,7 +12,7 @@ if (isAzure) {
 
 const startCommand = "npx pm2 restart ratingshistory";
 
-console.log(`Starting app with command: ${startCommand}`);
+console.log(`Restarting app with command: ${startCommand}`);
 
 exec(startCommand, (error, stdout, stderr) => {
   if (error) {

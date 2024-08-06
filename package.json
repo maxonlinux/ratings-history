@@ -6,7 +6,8 @@
     "build:admin": "cd admin-panel && npm install && npm run build",
     "build": "npm run build:server && npm run build:admin",
     "postbuild": "node postbuild.js",
-    "start": "cd express-server && npm run start"
+    "start": "cd express-server && npm run start",
+    "restart": "cd express-server && npm run restart"
   },
   "dependencies": {
     "fs-extra": "^11.2.0"

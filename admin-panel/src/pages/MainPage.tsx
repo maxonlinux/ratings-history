@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AgenciesView from "../components/AgenciesView";
 import FilesView from "../components/FilesView";
 import socket from "../services/socket";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { config } from "../config";
 import { emitter } from "../services/emitter";
 import { Events } from "../types";
@@ -38,9 +38,12 @@ function MainPage() {
       setShouldReload(true);
       setIsRestarting(true);
     } catch (error) {
-      console.error(
-        "Error creating CSV file: " +
-          (error instanceof Error ? error.message : String(error))
+      console.error(error instanceof Error ? error.message : String(error));
+
+      alert(
+        error instanceof AxiosError && error.response
+          ? error.response.data.error
+          : error
       );
     }
   };

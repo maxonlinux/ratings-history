@@ -87,10 +87,9 @@ const AgencyComponent: React.FC<{
               console.log(res.data);
             } catch (error) {
               console.error(
-                "Error creating CSV file: " +
-                  (error instanceof AxiosError
-                    ? error.response?.data.error ?? error
-                    : error)
+                error instanceof AxiosError
+                  ? error.response?.data.error ?? error
+                  : error
               );
             }
           }}
