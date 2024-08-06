@@ -4,13 +4,16 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc",
-    "start": "node --max-old-space-size=4096 dist/index.js",
+    "start": "npx pm2 start dist/index.js --name \"ratingshistory\"",
+    "restart": "npx pm2 restart ratingshistory",
     "dev": "nodemon --ignore public/ --ignore temp/ --exec ts-node src/index.ts"
   },
   "author": "Maksym Motoman",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@azure/arm-appservice": "^15.0.0",
+    "@azure/identity": "^4.4.1",
     "@parcel/watcher": "^2.4.1",
     "async-mutex": "^0.5.0",
     "axios": "^1.7.2",
@@ -26,6 +29,7 @@
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.14",
     "pidusage": "^3.0.2",
+    "pm2": "^5.4.2",
     "pug": "^3.0.3",
     "puppeteer": "^22.12.1",
     "systeminformation": "^5.22.11",
