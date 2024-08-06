@@ -101,7 +101,7 @@ emitter.on(
     const mailOptions = {
       from: config.mailCredentials.user,
       to: config.mailCredentials.recipient,
-      subject: "RatighsHistory.info | Tasks Report",
+      subject: "RatingsHistory.info | Task Report",
       html: htmlContent,
     };
 

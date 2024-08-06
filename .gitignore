@@ -1,0 +1,23 @@
+# Express
+express-server/public
+express-server/temp
+express-server/dist
+express-server/.env*
+express-server/dist-admin
+
+# Azure Functions
+thorium
+
+# React
+admin-panel/dist
+admin-panel/.env*
+
+# General
+*/node_modules
+*.DS_Store
+
+# Intellij Idea
+.idea/*
+
+# VS Code
+.vscode
