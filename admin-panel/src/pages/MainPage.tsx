@@ -11,6 +11,7 @@ import SysInfo from "../components/SysInfo";
 function MainPage() {
   const [isRestarting, setIsRestarting] = useState(false);
   const [shouldReload, setShouldReload] = useState(false);
+  const [restartError, setRestartError] = useState("");
 
   const handleLogout = async () => {
     try {
@@ -35,12 +36,11 @@ function MainPage() {
       const data = res.data;
 
       console.log(data.message);
+
       setShouldReload(true);
       setIsRestarting(true);
     } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
-
-      alert(
+      setRestartError(
         error instanceof AxiosError && error.response
           ? error.response.data.error
           : error
@@ -74,7 +74,9 @@ function MainPage() {
 
       <div
         className={`fixed flex flex-col gap-4 justify-center items-center top-0 left-0 w-full h-full bg-black text-white z-50 transition-opacity duration-1000 ${
-          isRestarting ? "opacity-100" : "pointer-events-none opacity-0"
+          isRestarting || restartError
+            ? "opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
       >
         {isRestarting ? (
@@ -84,12 +86,23 @@ function MainPage() {
             </span>
             Restarting server...
           </>
-        ) : (
+        ) : restartError ? (
+          <>
+            <span className="ic text-7xl font-thin">warning</span>
+            {restartError}
+            <button
+              className="border border-white px-4 py-2 rounded-md"
+              onClick={() => setRestartError("")}
+            >
+              OK
+            </button>
+          </>
+        ) : shouldReload ? (
           <>
             <span className="ic text-7xl font-thin">check_circle</span>
             Done! Reloading page...
           </>
-        )}
+        ) : null}
       </div>
 
       <div className="flex overflow-hidden h-full">
