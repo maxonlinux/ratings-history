@@ -19,6 +19,10 @@ exec(startCommand, (error, stdout, stderr) => {
     console.error(`Error executing command: ${error}`);
     return;
   }
+
+  if (stderr) {
+    console.error(`stderr: ${stderr}`);
+  }
+
   console.log(`stdout: ${stdout}`);
-  console.error(`stderr: ${stderr}`);
 });
