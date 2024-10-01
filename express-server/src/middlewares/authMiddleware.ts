@@ -3,6 +3,7 @@ import jwt, { JsonWebTokenError, JwtPayload } from "jsonwebtoken";
 import config from "../config";
 const publicEndpoints = [
   { path: "/files", method: "GET" },
+  { path: "/public/*", method: "GET" },
   { path: "/auth/*", method: "POST" }, // Example wildcard: { path: "/public/*", method: "GET" }
 ];
 

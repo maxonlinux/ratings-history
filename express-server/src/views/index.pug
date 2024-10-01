@@ -62,7 +62,7 @@ html
       ul
         each file in files
           li
-            a(href=`https://api.ratingshistory.info/public/${file.name}`)
+            a(href=`${publicDirUrl}/${file.name}`)
               | #{file.name} 
               span (#{file.lines} lines)
         if !files || !files.length

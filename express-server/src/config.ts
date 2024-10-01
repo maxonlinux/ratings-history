@@ -18,6 +18,10 @@ if (!process.env.AGENCY_FUNCTION_URL) {
   throw new Error("No agency function URL in .env");
 }
 
+if (!process.env.PUBLIC_DIR_URL) {
+  throw new Error("No public dir URL in .env");
+}
+
 if (
   !process.env.MAIL_USER ||
   !process.env.MAIL_PASS ||
@@ -34,6 +38,7 @@ const config = {
   outDirPath: process.env.OUT_DIR_PATH,
   tempDirPath: path.resolve(rootDirPath, "temp"),
   secret: process.env.SECRET,
+  publicDirUrl: process.env.PUBLIC_DIR_URL,
   agencyFunctionUrl: process.env.AGENCY_FUNCTION_URL,
   adminCredentials: {
     login: process.env.ADMIN_PASSWORD,

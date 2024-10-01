@@ -13,6 +13,7 @@ admin-panel/dist
 admin-panel/.env*
 
 # General
+node_modules
 */node_modules
 *.DS_Store
 
